@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TáNaMão - Profissionais e Serviços</title>
+    <meta name="theme-color" content="#FACC15">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TáNaMão">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="https://picsum.photos/180/180?random=apple1">
+    
+    <meta name="description" content="O guia definitivo de profissionais e serviços na sua região.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+          font-family: 'Inter', sans-serif; 
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-card { animation: fadeInScale 0.3s ease-out forwards; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+<body class="bg-yellow-400 text-black overflow-x-hidden">
+    <div id="root"></div>
+    <!-- O script abaixo é essencial para carregar o seu App -->
+    <script type="module" src="index.tsx"></script>
+</body>
+</html>

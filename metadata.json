@@ -1,0 +1,7 @@
+{
+  "name": "TáNaMão - Profissionais e Serviços",
+  "description": "Encontre os melhores profissionais e comércios da região. Divulgue seu trabalho e cresça seu negócio.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
