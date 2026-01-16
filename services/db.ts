@@ -3,8 +3,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Professional, Review, User } from '../types';
 import { INITIAL_PROS } from '../constants';
 
-// No Vercel, estas variáveis são configuradas no painel do projeto.
-// O fallback (valor após o ||) garante que o app continue funcionando se as variáveis não forem achadas.
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qcsxtkzgjrhzmvwvqpse.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_eNbpiaeRxpBUI8TKsLfekA_b8fcFpAK';
 
@@ -14,7 +12,7 @@ const FAVS_KEY = 'tanamao_favs_v2';
 const USER_KEY = 'tanamao_user_v2';
 
 export const db = {
-  // --- AUTH METHODS (Custom login with table users) ---
+  // --- AUTH METHODS ---
   async signUp(email: string, password: string, name: string): Promise<User> {
     const id = Math.random().toString(36).substr(2, 9);
     const user: User = { id, email, password, name };
@@ -44,6 +42,16 @@ export const db = {
     return { id: data.id, email: data.email, name: data.name };
   },
 
+  // --- NOTIFICATION METHODS ---
+  async notifyProfessionalOfReview(pro: Professional, review: Review): Promise<void> {
+    console.log(`[SIMULAÇÃO] Enviando e-mail para ${pro.email}...`);
+    console.log(`Assunto: Você recebeu uma nova avaliação de ${review.userName}!`);
+    console.log(`Mensagem: "${review.comment}" - Nota: ${review.rating} estrelas.`);
+    
+    // Em produção, aqui seria feita uma chamada para uma API de e-mail (SendGrid, EmailJS, etc)
+    return new Promise(resolve => setTimeout(resolve, 800));
+  },
+
   // --- PROFESSIONAL METHODS ---
   async getProfessionals(): Promise<Professional[]> {
     try {
@@ -51,11 +59,7 @@ export const db = {
         .from('professionals')
         .select('data');
       
-      if (error) {
-        console.warn("Dica: Se você acabou de conectar o banco, lembre-se de criar a tabela 'professionals' no SQL Editor.");
-        return INITIAL_PROS;
-      }
-      
+      if (error) return INITIAL_PROS;
       if (!data || data.length === 0) return INITIAL_PROS;
       
       return data.map(item => item.data as Professional);
@@ -80,8 +84,8 @@ export const db = {
       
       if (error) throw error;
     } catch (e) {
-      console.error("Erro ao salvar profissional no banco remoto:", e);
-      throw new Error("Não foi possível salvar os dados. Verifique sua conexão.");
+      console.error("Erro ao salvar profissional:", e);
+      throw new Error("Não foi possível salvar os dados.");
     }
   },
 
@@ -116,8 +120,13 @@ export const db = {
     const index = pros.findIndex(p => p.id === proId);
     if (index === -1) throw new Error('Profissional não encontrado');
     
-    pros[index].reviews.push(review);
-    await this.saveProfessional(pros[index]);
-    return pros[index];
+    const pro = pros[index];
+    pro.reviews.push(review);
+    
+    await this.saveProfessional(pro);
+    // Dispara a notificação após salvar
+    await this.notifyProfessionalOfReview(pro, review);
+    
+    return pro;
   }
 };

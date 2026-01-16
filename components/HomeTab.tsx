@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import { 
   Search, MapPin, Star, Heart, Phone, Mail, 
   MessageCircle, Share2, AlertCircle, Clock, 
-  ArrowUpDown, Facebook, Copy, Check, User as UserIcon
+  ArrowUpDown, Facebook, Copy, Check, User as UserIcon,
+  HelpCircle, UserPlus, Loader2
 } from 'lucide-react';
-import { Professional, Category, User } from '../types';
+import { Professional, Category, User, Review } from '../types';
+import { db } from '../services/db';
 
 interface HomeTabProps {
   professionals: Professional[];
@@ -73,9 +75,24 @@ const HomeTab: React.FC<HomeTabProps> = ({
     }
   };
 
+  const handleClaimProfile = (pro: Professional) => {
+    if (!currentUser || currentUser.id === 'temp') {
+      alert('Para reivindicar, você precisa criar uma conta profissional na aba "Perfil".');
+      return;
+    }
+    
+    if (confirm(`Deseja reivindicar o perfil "${pro.companyName || pro.proName}"? Você passará a ser o gestor deste negócio.`)) {
+      updateProfessional({
+        ...pro,
+        userId: currentUser.id,
+        isClaimable: false
+      });
+      alert('Parabéns! O perfil agora é seu. Você pode editá-lo na aba "Perfil".');
+    }
+  };
+
   return (
     <div className="p-4 space-y-6 relative">
-      {/* Search & Filters */}
       <div className="space-y-3 bg-black/5 p-3 rounded-2xl border border-black/10">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black w-5 h-5" />
@@ -94,7 +111,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
             value={selectedState}
             onChange={(e) => { setSelectedState(e.target.value); setSelectedCity(''); }}
           >
-            <option value="">UF (Estado)</option>
+            <option value="">UF</option>
             {states.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select 
@@ -141,7 +158,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
-      {/* Professionals List */}
       <div className="space-y-4">
         {filteredPros.length === 0 ? (
           <div className="text-center py-10 text-black font-bold italic bg-black/5 rounded-2xl border-2 border-dashed border-black/20">
@@ -157,15 +173,15 @@ const HomeTab: React.FC<HomeTabProps> = ({
               updateProfessional={updateProfessional}
               currentUser={currentUser}
               onPromptLogin={() => setShowLoginModal(true)}
+              onClaim={() => handleClaimProfile(pro)}
             />
           ))
         )}
       </div>
 
-      {/* Identity Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-yellow-400 border-4 border-black w-full max-w-xs rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in duration-300">
+          <div className="bg-yellow-400 border-4 border-black w-full max-w-xs rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <div className="text-center mb-6">
               <div className="bg-black text-yellow-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-black shadow-lg">
                 <UserIcon className="w-8 h-8" />
@@ -175,31 +191,17 @@ const HomeTab: React.FC<HomeTabProps> = ({
             </div>
             
             <form onSubmit={handleIdentitySubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase px-1">Seu Nome Completo</label>
-                <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="Ex: João da Silva"
-                  className="w-full bg-white border-3 border-black rounded-xl px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-black/10"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                />
-              </div>
+              <input 
+                autoFocus
+                type="text" 
+                placeholder="Ex: João da Silva"
+                className="w-full bg-white border-3 border-black rounded-xl px-4 py-3 font-bold outline-none"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+              />
               <div className="flex gap-2">
-                <button 
-                  type="button"
-                  onClick={() => setShowLoginModal(false)}
-                  className="flex-1 bg-white text-black border-3 border-black font-black py-3 rounded-xl text-xs uppercase"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="flex-[2] bg-black text-yellow-400 border-3 border-black font-black py-3 rounded-xl text-xs uppercase shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
-                >
-                  Confirmar
-                </button>
+                <button type="button" onClick={() => setShowLoginModal(false)} className="flex-1 bg-white text-black border-3 border-black font-black py-3 rounded-xl text-xs uppercase">Cancelar</button>
+                <button type="submit" className="flex-[2] bg-black text-yellow-400 border-3 border-black font-black py-3 rounded-xl text-xs uppercase">Confirmar</button>
               </div>
             </form>
           </div>
@@ -216,36 +218,46 @@ const ProCard: React.FC<{
   updateProfessional: (pro: Professional) => void;
   currentUser: User | null;
   onPromptLogin: () => void;
-}> = ({ pro, isFavorite, toggleFavorite, updateProfessional, currentUser, onPromptLogin }) => {
+  onClaim: () => void;
+}> = ({ pro, isFavorite, toggleFavorite, updateProfessional, currentUser, onPromptLogin, onClaim }) => {
   const [showDetails, setShowDetails] = useState(false);
-  const [showShareOptions, setShowShareOptions] = useState(false);
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSent, setReviewSent] = useState(false);
 
-  // Verifica se o usuário atual já deixou uma avaliação para este profissional
   const alreadyReviewed = currentUser && pro.reviews.some(r => r.userName.toLowerCase() === currentUser.name.toLowerCase());
 
-  const handleReview = () => {
+  const handleReview = async () => {
     if (!currentUser) return onPromptLogin();
     if (alreadyReviewed) return alert('Você já avaliou este profissional!');
     if (rating === 0) return alert('Por favor, selecione as estrelas');
     if (!comment.trim()) return alert('Escreva um pequeno comentário');
     
-    const newReview = {
-      id: Math.random().toString(36).substr(2, 9),
-      userName: currentUser.name,
-      rating,
-      comment,
-      date: new Date().toISOString().split('T')[0],
-      hidden: false
-    };
-    updateProfessional({
-      ...pro,
-      reviews: [...pro.reviews, newReview]
-    });
-    setRating(0);
-    setComment('');
+    setIsSubmittingReview(true);
+    try {
+      const newReview: Review = {
+        id: Math.random().toString(36).substr(2, 9),
+        userName: currentUser.name,
+        rating,
+        comment,
+        date: new Date().toISOString().split('T')[0],
+        hidden: false
+      };
+      
+      const updatedPro = await db.addReview(pro.id, newReview);
+      updateProfessional(updatedPro);
+      
+      setReviewSent(true);
+      setRating(0);
+      setComment('');
+      setTimeout(() => setReviewSent(false), 3000);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   const avgRating = pro.reviews.length > 0 
@@ -255,16 +267,6 @@ const ProCard: React.FC<{
   const cleanWhatsapp = pro.whatsapp.replace(/\D/g, '');
   const whatsappNumber = cleanWhatsapp.startsWith('55') ? cleanWhatsapp : `55${cleanWhatsapp}`;
   const whatsappMessage = encodeURIComponent('Olá! Encontrei seu contato no aplicativo TáNaMão.');
-  
-  const shareText = encodeURIComponent(`Confira o perfil de ${pro.companyName || pro.proName} no TáNaMão! Acesse agora para encontrar os melhores serviços.`);
-  const shareUrl = encodeURIComponent(window.location.href);
-
-  const copyToClipboard = () => {
-    const text = `Confira o perfil de ${pro.companyName || pro.proName} no TáNaMão! ${window.location.href}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className={`bg-white rounded-2xl border-2 transition-all overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${pro.isHighlighted ? 'border-black ring-4 ring-black/5' : 'border-black'}`}>
@@ -274,11 +276,26 @@ const ProCard: React.FC<{
         </div>
       )}
 
+      {pro.isClaimable && (
+        <div className="bg-blue-600 text-white p-3 border-b-2 border-black flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 shrink-0" />
+            <p className="text-[10px] font-black uppercase leading-tight italic">Você é responsável por este negócio? Reivindique!</p>
+          </div>
+          <button 
+            onClick={onClaim}
+            className="bg-white text-blue-600 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all flex items-center gap-1"
+          >
+            <UserPlus className="w-3 h-3" /> Assumir Perfil
+          </button>
+        </div>
+      )}
+
       <div className="p-4 flex gap-4">
         <div className="relative">
           <img src={pro.photoUrl} alt={pro.proName} className="w-20 h-20 rounded-2xl object-cover border-2 border-black bg-yellow-100" />
           {pro.isEmergency24h && (
-            <div className="absolute -bottom-1 -right-1 bg-red-600 text-white rounded-full p-1 border-2 border-black shadow-md animate-pulse" title="Emergência 24h">
+            <div className="absolute -bottom-1 -right-1 bg-red-600 text-white rounded-full p-1 border-2 border-black shadow-md animate-pulse">
               <AlertCircle className="w-3 h-3" />
             </div>
           )}
@@ -326,55 +343,16 @@ const ProCard: React.FC<{
           href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-xs uppercase tracking-tighter"
+          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-tighter"
         >
           <MessageCircle className="w-4 h-4" /> WhatsApp
         </a>
         <button 
           onClick={() => setShowDetails(!showDetails)}
-          className="px-4 py-2.5 bg-black text-white rounded-xl border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+          className="px-4 py-2.5 bg-black text-white rounded-xl border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
         >
           {showDetails ? 'Ver Menos' : 'Ver Mais'}
         </button>
-      </div>
-
-      <div className="px-4 pb-4">
-         <button 
-          onClick={() => setShowShareOptions(!showShareOptions)}
-          className={`w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-2 rounded-lg border-2 border-dashed transition-all ${showShareOptions ? 'bg-yellow-100 border-black' : 'text-black/30 border-black/10 hover:text-black hover:border-black/30'}`}
-        >
-          <Share2 className="w-3 h-3" /> {showShareOptions ? 'Fechar Compartilhamento' : 'Compartilhar Perfil'}
-        </button>
-
-        {showShareOptions && (
-          <div className="flex gap-2 mt-2 animate-in fade-in zoom-in duration-200">
-            <a 
-              href={`https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 bg-green-500 text-white p-2 rounded-lg flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              title="WhatsApp"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </a>
-            <a 
-              href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              title="Facebook"
-            >
-              <Facebook className="w-5 h-5" />
-            </a>
-            <button 
-              onClick={copyToClipboard}
-              className={`flex-1 p-2 rounded-lg flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors ${copied ? 'bg-black text-yellow-400' : 'bg-white text-black'}`}
-              title="Copiar Link"
-            >
-              {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-            </button>
-          </div>
-        )}
       </div>
 
       {showDetails && (
@@ -402,17 +380,6 @@ const ProCard: React.FC<{
             </a>
           </div>
 
-          {pro.servicesPhotos.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-black text-[10px] uppercase text-black/40 tracking-widest border-b border-black/5 pb-1">Trabalhos Realizados (VIP)</h4>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {pro.servicesPhotos.map((img, i) => (
-                  <img key={i} src={img} className="w-24 h-24 rounded-lg object-cover flex-shrink-0 border border-black/10 shadow-sm" alt="Serviço" />
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-4 bg-yellow-50/50 p-3 rounded-xl border border-black/5">
             <h4 className="font-black text-[10px] uppercase text-black/40 tracking-widest">Avaliações</h4>
             <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
@@ -438,17 +405,17 @@ const ProCard: React.FC<{
                   <div className="text-center p-4 bg-green-50 rounded-xl border-2 border-green-200">
                     <Check className="w-6 h-6 text-green-600 mx-auto mb-2" />
                     <p className="text-[10px] font-black text-green-800 uppercase italic">Você já avaliou este profissional!</p>
-                    <p className="text-[8px] text-green-600 font-bold uppercase mt-1">Obrigado pela sua contribuição.</p>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[9px] font-black uppercase text-black/40">Avaliar como:</span>
-                      <span className="text-[9px] font-black uppercase text-black underline">{currentUser.name}</span>
-                    </div>
+                    {reviewSent && (
+                      <div className="bg-green-600 text-white p-2 rounded-lg text-center text-[9px] font-black uppercase animate-bounce">
+                        Avaliação enviada! E-mail de notificação disparado ao profissional.
+                      </div>
+                    )}
                     <div className="flex justify-center gap-2">
                       {[1,2,3,4,5].map(i => (
-                        <button key={i} onClick={() => setRating(i)} className="transition-transform active:scale-125">
+                        <button key={i} onClick={() => setRating(i)}>
                           <Star className={`w-6 h-6 ${rating >= i ? 'fill-black text-black' : 'text-gray-300'}`} />
                         </button>
                       ))}
@@ -461,20 +428,20 @@ const ProCard: React.FC<{
                     />
                     <button 
                       onClick={handleReview}
-                      className="w-full bg-black text-yellow-400 font-black py-3 rounded-xl text-xs uppercase tracking-widest active:scale-95 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"
+                      disabled={isSubmittingReview}
+                      className="w-full bg-black text-yellow-400 font-black py-3 rounded-xl text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2"
                     >
-                      Enviar Avaliação
+                      {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar Avaliação'}
                     </button>
                   </>
                 )
               ) : (
                 <div className="text-center p-4 bg-black/5 rounded-xl border-2 border-dashed border-black/10">
-                  <p className="text-[10px] font-bold text-black/60 mb-3 uppercase italic">Você precisa se identificar para avaliar.</p>
                   <button 
                     onClick={onPromptLogin}
-                    className="bg-black text-yellow-400 px-6 py-2 rounded-lg font-black text-[10px] uppercase shadow-md active:scale-95 transition-all"
+                    className="bg-black text-yellow-400 px-6 py-2 rounded-lg font-black text-[10px] uppercase shadow-md"
                   >
-                    Identificar-me Agora
+                    Identificar-me para avaliar
                   </button>
                 </div>
               )}

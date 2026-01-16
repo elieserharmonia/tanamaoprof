@@ -4,8 +4,10 @@ import { Professional, Review } from '../types';
 import { 
   Shield, Eye, EyeOff, Award, TrendingUp, Settings, 
   Megaphone, Globe, DollarSign, Lightbulb, Lock, Unlock, 
-  ChevronRight, AlertCircle 
+  ChevronRight, AlertCircle, Copy, Check, MessageCircle,
+  PlusCircle, UserPlus
 } from 'lucide-react';
+import { DAYS_OF_WEEK, CATEGORIES } from '../constants';
 
 interface AdminTabProps {
   professionals: Professional[];
@@ -16,9 +18,28 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPass, setAdminPass] = useState('');
   const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'moderation' | 'benefits' | 'strategy'>('moderation');
+  const [activeTab, setActiveTab] = useState<'moderation' | 'benefits' | 'strategy' | 'create'>('moderation');
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
-  // Senha mestre para acessar a área administrativa
+  const [newProData, setNewProData] = useState<Partial<Professional>>({
+    companyName: '',
+    proName: '',
+    bio: '',
+    category: 'Profissional',
+    state: 'SP',
+    city: 'Torrinha',
+    phone: '',
+    whatsapp: '',
+    photoUrl: 'https://picsum.photos/200/200?random=' + Math.random(),
+    workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '08:00', end: '18:00', closed: false })),
+    isClaimable: true,
+    isVip: false,
+    isHighlighted: false,
+    isEmergency24h: false,
+    reviews: [],
+    servicesPhotos: []
+  });
+
   const MASTER_PASSWORD = 'admin123'; 
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -33,6 +54,30 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     }
   };
 
+  const handleCreatePro = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProData.companyName && !newProData.proName) return alert('Insira um nome.');
+    
+    const pro: Professional = {
+      ...newProData,
+      id: Math.random().toString(36).substr(2, 9),
+      userId: 'admin_seed',
+      companyName: newProData.companyName?.toUpperCase(),
+    } as Professional;
+
+    updateProfessional(pro);
+    alert('Perfil "Semente" criado! O profissional receberá um convite para reivindicar.');
+    setNewProData({
+      ...newProData,
+      companyName: '',
+      proName: '',
+      bio: '',
+      phone: '',
+      whatsapp: '',
+      photoUrl: 'https://picsum.photos/200/200?random=' + Math.random()
+    });
+  };
+
   const toggleReviewVisibility = (pro: Professional, reviewId: string) => {
     const updatedReviews = pro.reviews.map(r => 
       r.id === reviewId ? { ...r, hidden: !r.hidden } : r
@@ -44,7 +89,14 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     updateProfessional({ ...pro, [benefit]: !pro[benefit] });
   };
 
-  // Tela de Login Administrativo
+  const handleCopyMessage = (text: string, id: string) => {
+    const link = window.location.origin;
+    const finalText = text.replace('[LINK]', link);
+    navigator.clipboard.writeText(finalText);
+    setCopyStatus(id);
+    setTimeout(() => setCopyStatus(null), 2000);
+  };
+
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
@@ -53,43 +105,33 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
             <div className={`bg-black p-5 rounded-3xl shadow-2xl transition-transform ${error ? 'animate-shake bg-red-600' : 'animate-bounce'}`}>
               <Shield className="w-12 h-12 text-yellow-400" />
             </div>
-            {error && (
-              <div className="absolute -top-2 -right-2 bg-white text-red-600 rounded-full p-1 border-2 border-red-600 animate-bounce">
-                <AlertCircle className="w-4 h-4" />
-              </div>
-            )}
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase text-black">Área Restrita</h2>
-            <p className="text-[10px] font-black uppercase tracking-widest text-black/40">Acesso exclusivo para administradores</p>
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase text-black">Acesso Gerencial</h2>
+            <p className="text-[10px] font-black uppercase tracking-widest text-black/40">Autenticação obrigatória</p>
           </div>
 
           <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div className="relative group">
-              <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-600' : 'text-black/30 group-focus-within:text-black'}`} />
-              <input 
-                autoFocus
-                type="password" 
-                placeholder="SENHA MESTRE"
-                className={`w-full bg-white border-4 rounded-2xl py-4 pl-12 pr-4 font-black text-center tracking-[0.5em] outline-none transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:shadow-none focus:translate-x-1 focus:translate-y-1 ${error ? 'border-red-600 text-red-600' : 'border-black text-black'}`}
-                value={adminPass}
-                onChange={(e) => setAdminPass(e.target.value)}
-              />
-            </div>
+            <input 
+              autoFocus
+              type="password" 
+              placeholder="DIGITE A SENHA MESTRE"
+              className={`w-full bg-white border-4 rounded-2xl py-4 text-center tracking-[0.2em] outline-none transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:shadow-none focus:translate-x-1 focus:translate-y-1 ${error ? 'border-red-600 text-red-600' : 'border-black text-black font-black'}`}
+              value={adminPass}
+              onChange={(e) => setAdminPass(e.target.value)}
+            />
             <button 
               type="submit"
-              className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.3)] active:scale-95 transition-all"
+              className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.3)]"
             >
-              Desbloquear Painel <ChevronRight className="w-4 h-4" />
+              Acessar Painel <ChevronRight className="w-4 h-4" />
             </button>
           </form>
-
-          <p className="text-[9px] font-bold text-black/30 uppercase italic">
-            Dica: A senha padrão é <span className="underline">admin123</span>
+          <p className="text-[9px] text-black/30 font-bold uppercase italic leading-tight">
+            Se esqueceu sua senha, solicite uma nova via e-mail do suporte.
           </p>
         </div>
-        
         <style>{`
           @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -102,75 +144,107 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     );
   }
 
-  // Painel Administrativo (Após login)
   return (
     <div className="p-4 pb-20 animate-in zoom-in-95 duration-300">
       <div className="flex items-center justify-between mb-6">
         <div className="bg-black text-yellow-400 px-4 py-2 rounded-lg flex items-center gap-2">
           <Unlock className="w-4 h-4" />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Painel Liberado</span>
+          <span className="text-[10px] font-black uppercase tracking-tighter">Gerência Ativa</span>
         </div>
-        <button 
-          onClick={() => setIsAdminAuthenticated(false)}
-          className="text-[10px] font-black uppercase underline text-black/40 hover:text-black"
-        >
-          Sair
-        </button>
+        <button onClick={() => setIsAdminAuthenticated(false)} className="text-[10px] font-black uppercase underline text-black/40">Logout</button>
       </div>
 
-      <div className="flex gap-1 mb-6 bg-black/5 p-1 rounded-xl border border-black/10">
-        <button 
-          onClick={() => setActiveTab('moderation')}
-          className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'moderation' ? 'bg-black text-yellow-400 shadow-lg scale-105' : 'text-gray-500'}`}
-        >
-          Moderação
-        </button>
-        <button 
-          onClick={() => setActiveTab('benefits')}
-          className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'benefits' ? 'bg-black text-yellow-400 shadow-lg scale-105' : 'text-gray-500'}`}
-        >
-          Planos
-        </button>
-        <button 
-          onClick={() => setActiveTab('strategy')}
-          className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'strategy' ? 'bg-black text-yellow-400 shadow-lg scale-105' : 'text-gray-500'}`}
-        >
-          Estratégia
-        </button>
+      <div className="flex gap-1 mb-6 bg-black/5 p-1 rounded-xl border border-black/10 overflow-x-auto scrollbar-hide">
+        {['moderation', 'create', 'benefits', 'strategy'].map((t) => (
+          <button 
+            key={t}
+            onClick={() => setActiveTab(t as any)}
+            className={`flex-1 min-w-[80px] py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === t ? 'bg-black text-yellow-400 shadow-lg scale-105' : 'text-gray-500'}`}
+          >
+            {t === 'moderation' ? 'Moderar' : t === 'create' ? 'Cadastrar' : t === 'benefits' ? 'Planos' : 'Dicas'}
+          </button>
+        ))}
       </div>
+
+      {activeTab === 'create' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+          <h2 className="font-black text-xl uppercase italic">Novo Perfil Semente</h2>
+          <p className="text-xs text-gray-500 italic leading-tight">Crie perfis reais da cidade para gerar engajamento inicial.</p>
+          
+          <form onSubmit={handleCreatePro} className="bg-white border-4 border-black p-4 rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase mb-1 block">Nome do Negócio</label>
+              <input 
+                type="text" 
+                className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-bold text-sm uppercase"
+                value={newProData.companyName}
+                onChange={e => setNewProData({...newProData, companyName: e.target.value})}
+                placeholder="Ex: FARMÁCIA AVENIDA"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase mb-1 block">Descrição Simples</label>
+              <textarea 
+                className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-medium text-xs"
+                value={newProData.bio}
+                onChange={e => setNewProData({...newProData, bio: e.target.value})}
+                placeholder="Ex: Aberto todos os dias até as 22h. Entregas grátis no centro."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-black uppercase mb-1 block">Cidade</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-bold text-xs"
+                  value={newProData.city}
+                  onChange={e => setNewProData({...newProData, city: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase mb-1 block">Categoria</label>
+                <select 
+                  className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-bold text-xs"
+                  value={newProData.category}
+                  onChange={e => setNewProData({...newProData, category: e.target.value})}
+                >
+                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="w-full bg-yellow-400 text-black border-4 border-black py-4 rounded-2xl font-black uppercase italic tracking-tighter shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              Publicar e Convidar
+            </button>
+          </form>
+        </div>
+      )}
 
       {activeTab === 'moderation' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <h2 className="font-black text-xl uppercase italic">Controle de Comentários</h2>
-          <p className="text-xs text-gray-500">Oculte avaliações que violem as políticas do aplicativo.</p>
-          
+          <h2 className="font-black text-xl uppercase italic">Fila de Moderação</h2>
           <div className="space-y-4">
             {professionals.map(pro => (
-              <div key={pro.id} className="border-2 border-black rounded-2xl p-4 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-3">
-                <h3 className="font-black text-xs uppercase text-yellow-600">{pro.companyName || pro.proName}</h3>
-                <div className="space-y-2">
-                  {pro.reviews.map(rev => (
-                    <div key={rev.id} className={`p-2 rounded-lg border-2 flex justify-between items-center transition-all ${rev.hidden ? 'bg-red-50 border-red-200 opacity-60' : 'bg-green-50 border-green-200'}`}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black">{rev.userName}</span>
-                          <span className={`text-[8px] px-1 rounded font-black uppercase ${rev.hidden ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>
-                            {rev.hidden ? 'Oculto' : 'Visível'}
-                          </span>
+              pro.reviews.length > 0 && (
+                <div key={pro.id} className="border-2 border-black rounded-2xl p-4 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                  <h3 className="font-black text-[10px] uppercase text-yellow-600">{pro.companyName || pro.proName}</h3>
+                  <div className="space-y-2">
+                    {pro.reviews.map(rev => (
+                      <div key={rev.id} className={`p-2 rounded-lg border-2 flex justify-between items-center ${rev.hidden ? 'bg-red-50 border-red-200 opacity-50' : 'bg-green-50 border-green-200'}`}>
+                        <div className="flex-1">
+                          <span className="text-[9px] font-black block">{rev.userName}</span>
+                          <p className="text-[9px] italic">"{rev.comment}"</p>
                         </div>
-                        <p className="text-[10px] italic font-medium">"{rev.comment}"</p>
+                        <button onClick={() => toggleReviewVisibility(pro, rev.id)} className="p-2 bg-white rounded-xl border-2 border-black">
+                          {rev.hidden ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-red-600" />}
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => toggleReviewVisibility(pro, rev.id)}
-                        className="p-2 bg-white rounded-xl border-2 border-black shadow-sm active:scale-90 transition-transform"
-                      >
-                        {rev.hidden ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-red-600" />}
-                      </button>
-                    </div>
-                  ))}
-                  {pro.reviews.length === 0 && <p className="text-xs text-gray-400 italic font-bold">Sem comentários para este perfil.</p>}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             ))}
           </div>
         </div>
@@ -178,34 +252,17 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
 
       {activeTab === 'benefits' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <h2 className="font-black text-xl uppercase italic">Gestão de Planos</h2>
-          <p className="text-xs text-gray-500">Promova profissionais para VIP ou Destaque.</p>
-
+          <h2 className="font-black text-xl uppercase italic">Gestão de Visibilidade</h2>
           <div className="space-y-3">
             {professionals.map(pro => (
-              <div key={pro.id} className="flex items-center justify-between p-4 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none">
-                <div>
-                  <h3 className="font-black text-xs uppercase">{pro.companyName || pro.proName}</h3>
-                  <div className="flex gap-2 mt-1">
-                    {pro.isVip && <span className="text-[8px] bg-black text-yellow-400 font-black px-1.5 py-0.5 rounded border border-black uppercase animate-pulse">Sócio VIP</span>}
-                    {pro.isHighlighted && <span className="text-[8px] bg-yellow-400 text-black font-black px-1.5 py-0.5 rounded border border-black uppercase">Destaque</span>}
-                  </div>
+              <div key={pro.id} className="flex items-center justify-between p-4 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="font-black text-xs uppercase truncate">{pro.companyName || pro.proName}</h3>
+                  {pro.isClaimable && <span className="text-[8px] text-blue-600 font-black uppercase italic">Pendente Reivindicação</span>}
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => toggleBenefit(pro, 'isVip')}
-                    className={`p-2 rounded-xl border-2 transition-all ${pro.isVip ? 'bg-black text-yellow-400 border-black' : 'bg-white text-gray-400 border-gray-200'}`}
-                    title="Ativar VIP"
-                  >
-                    <Award className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={() => toggleBenefit(pro, 'isHighlighted')}
-                    className={`p-2 rounded-xl border-2 transition-all ${pro.isHighlighted ? 'bg-yellow-400 text-black border-black' : 'bg-white text-gray-400 border-gray-200'}`}
-                    title="Ativar Destaque"
-                  >
-                    <TrendingUp className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => toggleBenefit(pro, 'isVip')} className={`p-2 rounded-xl border-2 ${pro.isVip ? 'bg-black text-yellow-400 border-black' : 'bg-white border-gray-200 text-gray-400'}`}><Award className="w-4 h-4" /></button>
+                  <button onClick={() => toggleBenefit(pro, 'isHighlighted')} className={`p-2 rounded-xl border-2 ${pro.isHighlighted ? 'bg-yellow-400 text-black border-black' : 'bg-white border-gray-200 text-gray-400'}`}><TrendingUp className="w-4 h-4" /></button>
                 </div>
               </div>
             ))}
@@ -215,38 +272,35 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
 
       {activeTab === 'strategy' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <div className="bg-black text-yellow-400 p-6 rounded-3xl shadow-xl overflow-hidden relative border-4 border-yellow-400/20">
-            <h2 className="text-2xl font-black italic mb-2 relative z-10">MANUAL DO DONO</h2>
-            <p className="text-sm font-bold opacity-80 relative z-10">Dicas para lucrar e divulgar o TáNaMão</p>
+           <div className="bg-black text-yellow-400 p-6 rounded-3xl shadow-xl overflow-hidden relative border-4 border-yellow-400/20">
+            <h2 className="text-2xl font-black italic mb-2 relative z-10">CRESCIMENTO</h2>
             <Lightbulb className="absolute bottom-[-10px] right-[-10px] w-24 h-24 text-yellow-400/20 rotate-12" />
           </div>
 
           <section className="space-y-4">
             <div className="flex items-center gap-3">
-              <Megaphone className="w-5 h-5 text-black" />
-              <h3 className="font-black text-sm uppercase">Divulgação Local</h3>
+              <PlusCircle className="w-5 h-5 text-black" />
+              <h3 className="font-black text-sm uppercase italic">Passos para Engajar</h3>
             </div>
-            <div className="grid gap-3">
-              <TipCard title="Grupos de Facebook" text="Poste diariamente nos grupos de 'Bolo e Rolo' da sua cidade." />
-              <TipCard title="QR Code Estratégico" text="Imprima adesivos com QR Code e cole em pontos de ônibus e padarias." />
-              <TipCard title="Amostra Grátis" text="Dê 48h de destaque grátis para novos profissionais testarem o app." />
-            </div>
+            <TipCard 
+              title="Crie 10 Perfis Hoje" 
+              text="Cadastre os 10 profissionais mais conhecidos da sua cidade. O TáNaMão enviará um e-mail a cada nova avaliação que eles receberem, motivando-os a assumir a conta." 
+            />
           </section>
 
           <section className="space-y-4">
             <div className="flex items-center gap-3">
-              <DollarSign className="w-5 h-5 text-black" />
-              <h3 className="font-black text-sm uppercase">Planos de Cobrança</h3>
+              <MessageCircle className="w-5 h-5 text-black" />
+              <h3 className="font-black text-sm uppercase italic tracking-tighter">Copy para WhatsApp</h3>
             </div>
             <div className="space-y-3">
-              <div className="bg-white border-2 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <h4 className="font-black text-xs uppercase mb-1">Destaque Semanal (R$ 15,00)</h4>
-                <p className="text-[10px] font-medium text-gray-600">O profissional fica no topo da lista por 7 dias.</p>
-              </div>
-              <div className="bg-white border-2 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <h4 className="font-black text-xs uppercase mb-1">Anuidade VIP (R$ 199,00)</h4>
-                <p className="text-[10px] font-medium text-gray-600">Selo VIP permanente e suporte prioritário no cadastro.</p>
-              </div>
+               <CopyCard 
+                id="msg1"
+                title="Aviso de Reivindicação" 
+                text="Tudo bem? Notei que seu serviço é referência na cidade e tomei a liberdade de criar uma vitrine prévia para você no TáNaMão. Já temos clientes procurando por seu serviço. Reivindique seu perfil gratuitamente para gerenciar suas fotos e receber notificações: [LINK]" 
+                status={copyStatus}
+                onCopy={handleCopyMessage}
+              />
             </div>
           </section>
         </div>
@@ -257,8 +311,29 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
 
 const TipCard: React.FC<{title: string, text: string}> = ({title, text}) => (
   <div className="bg-white border-2 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-    <h4 className="font-black text-xs uppercase text-black mb-1">{title}</h4>
+    <h4 className="font-black text-xs uppercase text-black mb-1 italic">{title}</h4>
     <p className="text-[10px] font-medium text-gray-600 leading-tight">{text}</p>
+  </div>
+);
+
+const CopyCard: React.FC<{
+  id: string, 
+  title: string, 
+  text: string, 
+  status: string | null, 
+  onCopy: (t: string, id: string) => void
+}> = ({id, title, text, status, onCopy}) => (
+  <div className="bg-white border-2 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group">
+    <div className="flex justify-between items-start mb-2">
+      <h4 className="font-black text-[10px] uppercase text-yellow-600">{title}</h4>
+      <button 
+        onClick={() => onCopy(text, id)}
+        className={`p-1.5 rounded-lg border-2 transition-all ${status === id ? 'bg-green-500 border-black text-white' : 'bg-black border-black text-yellow-400'}`}
+      >
+        {status === id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      </button>
+    </div>
+    <p className="text-[9px] font-medium text-gray-700 leading-relaxed pr-8 italic">"{text.replace('[LINK]', window.location.origin)}"</p>
   </div>
 );
 

@@ -44,6 +44,7 @@ export interface Professional {
   workingHours: WorkingHours[];
   reviews: Review[];
   servicesPhotos: string[];
+  isClaimable?: boolean; // Se o perfil foi criado por admin e espera um dono
 }
 
 export enum Tab {
