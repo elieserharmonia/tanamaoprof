@@ -254,6 +254,7 @@ const ProCard: React.FC<{
 
   const cleanWhatsapp = pro.whatsapp.replace(/\D/g, '');
   const whatsappNumber = cleanWhatsapp.startsWith('55') ? cleanWhatsapp : `55${cleanWhatsapp}`;
+  const whatsappMessage = encodeURIComponent('Olá! Encontrei seu contato no aplicativo TáNaMão.');
   
   const shareText = encodeURIComponent(`Confira o perfil de ${pro.companyName || pro.proName} no TáNaMão! Acesse agora para encontrar os melhores serviços.`);
   const shareUrl = encodeURIComponent(window.location.href);
@@ -322,7 +323,7 @@ const ProCard: React.FC<{
 
       <div className="p-4 flex gap-2">
         <a 
-          href={`https://wa.me/${whatsappNumber}`} 
+          href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-xs uppercase tracking-tighter"
