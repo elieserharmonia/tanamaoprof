@@ -126,6 +126,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button 
+            type="button"
             onClick={() => setActiveCategory('Todos')}
             className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-black uppercase transition-all border-2 ${activeCategory === 'Todos' ? 'bg-black text-yellow-400 border-black' : 'bg-white text-black border-black'}`}
           >
@@ -133,6 +134,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           </button>
           {dynamicCategories.map(cat => (
             <button 
+              type="button"
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-xs font-black uppercase transition-all border-2 ${activeCategory === cat ? 'bg-black text-yellow-400 border-black' : 'bg-white text-black border-black'}`}
@@ -144,12 +146,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <div className="pt-2 border-t border-black/10 flex gap-2">
           <button 
+            type="button"
             onClick={() => setSortBy(sortBy === 'name' ? 'default' : 'name')}
             className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all border-2 ${sortBy === 'name' ? 'bg-black text-yellow-400 border-black' : 'bg-white/50 text-black border-black/20'}`}
           >
             <ArrowUpDown className="w-3 h-3" /> Por Nome
           </button>
           <button 
+            type="button"
             onClick={() => setSortBy(sortBy === 'rating' ? 'default' : 'rating')}
             className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all border-2 ${sortBy === 'rating' ? 'bg-black text-yellow-400 border-black' : 'bg-white/50 text-black border-black/20'}`}
           >
@@ -221,7 +225,6 @@ const ProCard: React.FC<{
   onClaim: () => void;
 }> = ({ pro, isFavorite, toggleFavorite, updateProfessional, currentUser, onPromptLogin, onClaim }) => {
   const [showDetails, setShowDetails] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -283,8 +286,9 @@ const ProCard: React.FC<{
             <p className="text-[10px] font-black uppercase leading-tight italic">Você é responsável por este negócio? Reivindique!</p>
           </div>
           <button 
-            onClick={onClaim}
-            className="bg-white text-blue-600 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all flex items-center gap-1"
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClaim(); }}
+            className="bg-white text-blue-600 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all flex items-center gap-1 border-2 border-black/10"
           >
             <UserPlus className="w-3 h-3" /> Assumir Perfil
           </button>
@@ -313,7 +317,11 @@ const ProCard: React.FC<{
                 </p>
               )}
             </div>
-            <button onClick={() => toggleFavorite(pro.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(pro.id); }} 
+              className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+            >
               <Heart className={`w-6 h-6 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
             </button>
           </div>
@@ -338,18 +346,23 @@ const ProCard: React.FC<{
         <p className="text-xs text-black/80 line-clamp-2 italic whitespace-pre-wrap leading-relaxed">"{pro.bio}"</p>
       </div>
 
-      <div className="p-4 flex gap-2">
+      <div className="p-4 flex gap-2 relative z-10">
         <a 
           href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-tighter"
+          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs uppercase tracking-tighter"
         >
           <MessageCircle className="w-4 h-4" /> WhatsApp
         </a>
         <button 
-          onClick={() => setShowDetails(!showDetails)}
-          className="px-4 py-2.5 bg-black text-white rounded-xl border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          type="button"
+          onClick={(e) => { 
+            e.preventDefault();
+            e.stopPropagation();
+            setShowDetails(!showDetails); 
+          }}
+          className="cursor-pointer relative z-20 flex-1 px-4 py-2.5 bg-black text-white rounded-xl border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all pointer-events-auto"
         >
           {showDetails ? 'Ver Menos' : 'Ver Mais'}
         </button>
@@ -372,10 +385,10 @@ const ProCard: React.FC<{
           </div>
 
           <div className="flex gap-2">
-            <a href={`mailto:${pro.email}`} className="flex-1 bg-white text-black font-black py-2 rounded-lg border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase">
+            <a href={`mailto:${pro.email}`} className="flex-1 bg-white text-black font-black py-2 rounded-lg border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase active:bg-gray-100">
               <Mail className="w-3 h-3" /> E-mail
             </a>
-            <a href={`tel:${pro.phone}`} className="flex-1 bg-white text-black font-black py-2 rounded-lg border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase">
+            <a href={`tel:${pro.phone}`} className="flex-1 bg-white text-black font-black py-2 rounded-lg border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase active:bg-gray-100">
               <Phone className="w-3 h-3" /> Ligar
             </a>
           </div>
@@ -415,7 +428,7 @@ const ProCard: React.FC<{
                     )}
                     <div className="flex justify-center gap-2">
                       {[1,2,3,4,5].map(i => (
-                        <button key={i} onClick={() => setRating(i)}>
+                        <button type="button" key={i} onClick={() => setRating(i)}>
                           <Star className={`w-6 h-6 ${rating >= i ? 'fill-black text-black' : 'text-gray-300'}`} />
                         </button>
                       ))}
@@ -427,9 +440,10 @@ const ProCard: React.FC<{
                       onChange={(e) => setComment(e.target.value)}
                     />
                     <button 
+                      type="button"
                       onClick={handleReview}
                       disabled={isSubmittingReview}
-                      className="w-full bg-black text-yellow-400 font-black py-3 rounded-xl text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2"
+                      className="w-full bg-black text-yellow-400 font-black py-3 rounded-xl text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none"
                     >
                       {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar Avaliação'}
                     </button>
@@ -438,8 +452,9 @@ const ProCard: React.FC<{
               ) : (
                 <div className="text-center p-4 bg-black/5 rounded-xl border-2 border-dashed border-black/10">
                   <button 
-                    onClick={onPromptLogin}
-                    className="bg-black text-yellow-400 px-6 py-2 rounded-lg font-black text-[10px] uppercase shadow-md"
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onPromptLogin(); }}
+                    className="bg-black text-yellow-400 px-6 py-2 rounded-lg font-black text-[10px] uppercase shadow-md active:scale-95 transition-all"
                   >
                     Identificar-me para avaliar
                   </button>
