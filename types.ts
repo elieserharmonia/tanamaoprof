@@ -26,11 +26,13 @@ export interface Review {
 
 export interface Professional {
   id: string;
-  userId: string; // ID do dono do perfil
+  userId: string; 
+  profileType: 'Profissional' | 'Comercio';
   companyName?: string;
   proName?: string;
   bio: string;
-  category: Category;
+  category: string;
+  subCategory?: string;
   state: string;
   city: string;
   phone: string;
@@ -44,7 +46,9 @@ export interface Professional {
   workingHours: WorkingHours[];
   reviews: Review[];
   servicesPhotos: string[];
-  isClaimable?: boolean; // Se o perfil foi criado por admin e espera um dono
+  isClaimable?: boolean;
+  views: number;
+  createdAt: string;
 }
 
 export enum Tab {

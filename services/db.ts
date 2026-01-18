@@ -26,6 +26,8 @@ export const db = {
       throw error;
     }
     
+    await this.notifyWelcome(user, password);
+    
     return { id, email, name };
   },
 
@@ -43,12 +45,22 @@ export const db = {
   },
 
   // --- NOTIFICATION METHODS ---
+  async notifyWelcome(user: User, pass: string): Promise<void> {
+    console.log(`[SIMULAÇÃO E-MAIL BOAS-VINDAS]`);
+    console.log(`Para: ${user.email}`);
+    console.log(`Assunto: Bem-vindo ao TáNaMão, ${user.name}!`);
+    console.log(`Mensagem: Seu cadastro foi realizado com sucesso.`);
+    console.log(`Login: ${user.email}`);
+    console.log(`Senha: ${pass}`);
+    console.log(`Link: ${window.location.origin}/perfil`);
+    return new Promise(resolve => setTimeout(resolve, 1000));
+  },
+
   async notifyProfessionalOfReview(pro: Professional, review: Review): Promise<void> {
-    console.log(`[SIMULAÇÃO] Enviando e-mail para ${pro.email}...`);
-    console.log(`Assunto: Você recebeu uma nova avaliação de ${review.userName}!`);
-    console.log(`Mensagem: "${review.comment}" - Nota: ${review.rating} estrelas.`);
-    
-    // Em produção, aqui seria feita uma chamada para uma API de e-mail (SendGrid, EmailJS, etc)
+    console.log(`[SIMULAÇÃO E-MAIL AVALIAÇÃO]`);
+    console.log(`Para: ${pro.email}`);
+    console.log(`Assunto: Nova avaliação recebida!`);
+    console.log(`Mensagem: "${review.comment}" (${review.rating} estrelas)`);
     return new Promise(resolve => setTimeout(resolve, 800));
   },
 
@@ -89,6 +101,15 @@ export const db = {
     }
   },
 
+  async incrementViews(proId: string): Promise<void> {
+    const pros = await this.getProfessionals();
+    const index = pros.findIndex(p => p.id === proId);
+    if (index !== -1) {
+      pros[index].views = (pros[index].views || 0) + 1;
+      await this.saveProfessional(pros[index]);
+    }
+  },
+
   // --- LOCAL DATA ---
   async getFavorites(): Promise<string[]> {
     const saved = localStorage.getItem(FAVS_KEY);
@@ -124,7 +145,6 @@ export const db = {
     pro.reviews.push(review);
     
     await this.saveProfessional(pro);
-    // Dispara a notificação após salvar
     await this.notifyProfessionalOfReview(pro, review);
     
     return pro;

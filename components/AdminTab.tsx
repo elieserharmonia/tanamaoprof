@@ -25,7 +25,9 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     companyName: '',
     proName: '',
     bio: '',
-    category: 'Profissional',
+    // Fix: category should be a valid category string, profileType should be the enum value
+    profileType: 'Profissional',
+    category: '',
     state: 'SP',
     city: 'Torrinha',
     phone: '',
@@ -208,6 +210,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
                   value={newProData.category}
                   onChange={e => setNewProData({...newProData, category: e.target.value})}
                 >
+                  <option value="">Selecione...</option>
                   {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
               </div>
