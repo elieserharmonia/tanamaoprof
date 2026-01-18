@@ -25,14 +25,14 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     companyName: '',
     proName: '',
     bio: '',
-    // Fix: category should be a valid category string, profileType should be the enum value
     profileType: 'Profissional',
     category: '',
     state: 'SP',
     city: 'Torrinha',
     phone: '',
     whatsapp: '',
-    photoUrl: 'https://picsum.photos/200/200?random=' + Math.random(),
+    // Placeholder fixo para novos perfis semente
+    photoUrl: 'https://img.icons8.com/fluency/200/new-view.png',
     workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '08:00', end: '18:00', closed: false })),
     isClaimable: true,
     isVip: false,
@@ -76,7 +76,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
       bio: '',
       phone: '',
       whatsapp: '',
-      photoUrl: 'https://picsum.photos/200/200?random=' + Math.random()
+      photoUrl: 'https://img.icons8.com/fluency/200/new-view.png'
     });
   };
 

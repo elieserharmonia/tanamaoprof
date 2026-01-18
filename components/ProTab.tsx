@@ -31,7 +31,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     whatsapp: '',
     experienceYears: 0,
     isEmergency24h: false,
-    photoUrl: 'https://picsum.photos/200/200?random=pro',
+    // Placeholder fixo para evitar mudanças involuntárias
+    photoUrl: 'https://img.icons8.com/fluency/200/user-male-circle.png',
     workingHours: DAYS_OF_WEEK.map(day => ({ day, start: '08:00', end: '18:00', closed: false })),
     reviews: [],
     servicesPhotos: [],
@@ -254,7 +255,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
               disabled={!formData.category}
             >
               <option value="">Selecione...</option>
-              {/* Fix: cast currentCategories to Record<string, string[]> to resolve "never" type inference error */}
               {formData.category && (currentCategories as Record<string, string[]>)[formData.category]?.map((sub: string) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}

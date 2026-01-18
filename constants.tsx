@@ -82,6 +82,7 @@ export const DAYS_OF_WEEK = [
   'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'
 ];
 
+// Placeholder fix: Using static images to prevent "auto-changing" behavior
 export const INITIAL_PROS: any[] = [
   {
     id: '1',
@@ -100,7 +101,7 @@ export const INITIAL_PROS: any[] = [
     isVip: true,
     isHighlighted: true,
     isEmergency24h: true,
-    photoUrl: 'https://picsum.photos/200/200?random=1',
+    photoUrl: 'https://img.icons8.com/fluency/200/worker-male.png',
     workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '08:00', end: '18:00', closed: d === 'Domingo' })),
     reviews: [
       { id: 'r1', userName: 'Maria Santos', rating: 5, comment: 'Excelente trabalho!', date: '2023-10-01', hidden: false }
@@ -126,7 +127,7 @@ export const INITIAL_PROS: any[] = [
     isVip: false,
     isHighlighted: false,
     isEmergency24h: false,
-    photoUrl: 'https://picsum.photos/200/200?random=2',
+    photoUrl: 'https://img.icons8.com/fluency/200/shop.png',
     workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '06:00', end: '20:00', closed: false })),
     reviews: [],
     servicesPhotos: [],

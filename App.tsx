@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const initApp = async () => {
@@ -32,6 +33,13 @@ const App: React.FC = () => {
         setLoading(false);
       }
     };
+
+    // Escuta o evento de prompt de instalação
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+
     initApp();
   }, []);
 
@@ -64,6 +72,15 @@ const App: React.FC = () => {
     await db.setCurrentUser(null);
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   if (loading && professionals.length === 0) {
     return (
       <div className="min-h-screen bg-yellow-400 flex flex-col items-center justify-center p-8 text-center">
@@ -78,7 +95,10 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto bg-yellow-400 shadow-2xl relative">
-      <InstallBanner />
+      <InstallBanner 
+        deferredPrompt={deferredPrompt} 
+        onInstall={handleInstallClick} 
+      />
       
       <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 flex flex-col gap-2 shadow-md">
         <div className="flex justify-between items-center gap-3">
@@ -109,7 +129,7 @@ const App: React.FC = () => {
             favorites={favorites}
             updateProfessional={updateProfessional}
             currentUser={currentUser}
-            onLogin={(name) => handleLogin({id: 'temp', name, email: ''})} // Para reviews rápidos
+            onLogin={(name) => handleLogin({id: 'temp', name, email: ''})} 
           />
         )}
         {activeTab === Tab.PRO && (
