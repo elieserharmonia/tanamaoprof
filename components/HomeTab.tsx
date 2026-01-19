@@ -4,7 +4,8 @@ import {
   Search, MapPin, Star, Heart, Phone, Mail, 
   MessageCircle, AlertCircle, Clock, 
   ArrowUpDown, Check, User as UserIcon,
-  HelpCircle, UserPlus, Loader2, Briefcase, ShoppingBag, Eye, TrendingUp, Calendar, X
+  HelpCircle, UserPlus, Loader2, Briefcase, ShoppingBag, Eye, TrendingUp, Calendar, X,
+  Share2, Award, Zap, List
 } from 'lucide-react';
 import { Professional, User, Review } from '../types';
 import { ALL_SPECIALTIES } from '../constants';
@@ -41,40 +42,44 @@ const HomeTab: React.FC<HomeTabProps> = ({
     return pro.reviews.reduce((sum, r) => sum + r.rating, 0) / pro.reviews.length;
   };
 
-  // 1. Calcular especialidades disponíveis baseado no tipo selecionado para o dropdown
+  const getPlanWeight = (plan: string) => {
+    if (plan === 'Premium') return 3;
+    if (plan === 'VIP') return 2;
+    return 1;
+  };
+
   const availableSpecialties = useMemo(() => {
     const filtered = professionals.filter(p => filterType === 'Todos' || p.profileType === filterType);
     return Array.from(new Set(filtered.map(p => p.subCategory).filter(Boolean))).sort() as string[];
   }, [professionals, filterType]);
 
-  // 2. Filtrar os profissionais com base em todos os critérios
   const filteredPros = useMemo(() => {
     return professionals.filter(pro => {
       const proSub = (pro.subCategory || '').toLowerCase();
       const proName = (pro.proName || '').toLowerCase();
       const proCompany = (pro.companyName || '').toLowerCase();
       const proBio = (pro.bio || '').toLowerCase();
+      const proAddress = `${pro.street || ''} ${pro.neighborhood || ''} ${pro.city || ''}`.toLowerCase();
       const search = searchTerm.toLowerCase();
 
       const matchesSearch = !searchTerm || 
                             proCompany.includes(search) || 
                             proName.includes(search) ||
                             proBio.includes(search) ||
+                            proAddress.includes(search) ||
                             proSub.includes(search);
 
       const matchesType = filterType === 'Todos' || pro.profileType === filterType;
-      
-      // Filtro de especialidade exato
       const matchesSub = !filterSub || pro.subCategory === filterSub;
-      
       const matchesCity = !selectedCity || pro.city.toLowerCase() === selectedCity.toLowerCase();
       const matchesState = !selectedState || pro.state.toLowerCase() === selectedState.toLowerCase();
 
       return matchesSearch && matchesType && matchesSub && matchesCity && matchesState;
     }).sort((a, b) => {
-      // Destaques sempre no topo
-      if (a.isHighlighted && !b.isHighlighted) return -1;
-      if (!a.isHighlighted && b.isHighlighted) return 1;
+      const weightA = getPlanWeight(a.plan);
+      const weightB = getPlanWeight(b.plan);
+      
+      if (weightA !== weightB) return weightB - weightA;
 
       if (sortBy === 'name') {
         const nameA = (a.companyName || a.proName || '').toLowerCase();
@@ -120,22 +125,13 @@ const HomeTab: React.FC<HomeTabProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-black/20 hover:text-black">
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
         <div className="flex gap-2">
           {(['Todos', 'Profissional', 'Comercio'] as const).map(t => (
             <button 
               key={t}
-              onClick={() => {
-                setFilterType(t);
-                // Se o filtro atual não existir na nova categoria, reseta ele
-                setFilterSub(''); 
-              }}
+              onClick={() => { setFilterType(t); setFilterSub(''); }}
               className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all border-2 ${filterType === t ? 'bg-black text-yellow-400 border-black' : 'bg-white text-black border-black/10 hover:border-black/30'}`}
             >
               {t === 'Comercio' ? 'Comércios' : t}
@@ -143,24 +139,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           ))}
         </div>
 
-        <div className="space-y-2">
-          <div className="relative">
-            <select 
-              className="w-full bg-white border-2 border-black rounded-lg px-3 py-2.5 text-[10px] font-black uppercase outline-none appearance-none cursor-pointer"
-              value={filterSub}
-              onChange={(e) => setFilterSub(e.target.value)}
-            >
-              <option value="">Filtrar por Especialidade (Opcional)</option>
-              {availableSpecialties.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-30">
-              <ArrowUpDown className="w-3 h-3" />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
+        <div className="flex gap-2">
             <select className="flex-1 bg-white border-2 border-black rounded-lg px-2 py-2 text-[10px] font-black uppercase outline-none" value={selectedState} onChange={e => setSelectedState(e.target.value)}>
               <option value="">UF</option>
               {states.map(s => <option key={s} value={s}>{s}</option>)}
@@ -169,17 +148,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
               <option value="">Cidade</option>
               {cities.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-          </div>
         </div>
-
-        {(searchTerm || filterSub || selectedCity || selectedState) && (
-          <button 
-            onClick={clearFilters}
-            className="w-full text-[9px] font-black uppercase text-red-600 bg-red-50 py-1 rounded-md border border-red-100"
-          >
-            Limpar Filtros
-          </button>
-        )}
 
         <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide border-t border-black/5 pt-2">
           {[
@@ -191,7 +160,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
             <button 
               key={s.id}
               onClick={() => setSortBy(s.id as any)}
-              className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-2 transition-all ${sortBy === s.id ? 'bg-yellow-400 text-black border-black shadow-md' : 'bg-gray-50 text-gray-400 border-black/5 hover:border-black/20'}`}
+              className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-2 transition-all ${sortBy === s.id ? 'bg-yellow-400 text-black border-black shadow-md' : 'bg-gray-50 text-gray-400 border-black/5'}`}
             >
               {s.icon} {s.label}
             </button>
@@ -200,27 +169,17 @@ const HomeTab: React.FC<HomeTabProps> = ({
       </div>
 
       <div className="space-y-4">
-        {filteredPros.length > 0 ? (
-          filteredPros.map(pro => (
-            <ProCard 
-              key={pro.id} 
-              pro={pro} 
-              isFavorite={favorites.includes(pro.id)}
-              toggleFavorite={toggleFavorite}
-              updateProfessional={updateProfessional}
-              currentUser={currentUser}
-              onPromptLogin={() => setShowLoginModal(true)}
-            />
-          ))
-        ) : (
-          <div className="py-20 text-center space-y-4">
-            <div className="bg-black/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto opacity-20">
-              <Search className="w-8 h-8" />
-            </div>
-            <p className="font-black uppercase text-[10px] text-black/40 italic">Nenhum resultado encontrado para esta busca.</p>
-            <button onClick={clearFilters} className="text-xs font-black uppercase underline">Ver todos os profissionais</button>
-          </div>
-        )}
+        {filteredPros.map(pro => (
+          <ProCard 
+            key={pro.id} 
+            pro={pro} 
+            isFavorite={favorites.includes(pro.id)}
+            toggleFavorite={toggleFavorite}
+            updateProfessional={updateProfessional}
+            currentUser={currentUser}
+            onPromptLogin={() => setShowLoginModal(true)}
+          />
+        ))}
       </div>
 
       {showLoginModal && (
@@ -238,7 +197,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
               />
               <button type="submit" className="w-full bg-black text-yellow-400 border-3 border-black font-black py-3 rounded-xl text-xs uppercase">Confirmar</button>
             </form>
-            <button onClick={() => setShowLoginModal(false)} className="w-full mt-4 text-[10px] font-black uppercase opacity-40">Fechar</button>
           </div>
         </div>
       )}
@@ -260,10 +218,18 @@ const ProCard: React.FC<{
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const handleOpenDetails = () => {
-    if (!showDetails) {
-      db.incrementViews(pro.id);
-    }
+    if (!showDetails) db.incrementViews(pro.id);
     setShowDetails(!showDetails);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: pro.companyName || pro.proName,
+        text: `Veja o perfil de ${pro.companyName || pro.proName} no TáNaMão!`,
+        url: window.location.href,
+      });
+    }
   };
 
   const handleReview = async () => {
@@ -280,12 +246,11 @@ const ProCard: React.FC<{
         date: new Date().toISOString().split('T')[0],
         hidden: false
       };
-      
       const updatedPro = await db.addReview(pro.id, newReview);
       updateProfessional(updatedPro);
       setRating(0);
       setComment('');
-      alert('Avaliação enviada! O profissional foi notificado.');
+      alert('Avaliação enviada!');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -297,20 +262,30 @@ const ProCard: React.FC<{
     ? (pro.reviews.reduce((sum, r) => sum + r.rating, 0) / pro.reviews.length).toFixed(1)
     : 'Novo';
 
+  const fullAddress = [pro.street, pro.number ? `nº ${pro.number}` : '', pro.neighborhood, pro.city, pro.state].filter(Boolean).join(', ');
+
+  const isVipOrPremium = pro.plan === 'VIP' || pro.plan === 'Premium';
+
   return (
-    <div className={`bg-white rounded-2xl border-2 overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-card ${pro.isHighlighted ? 'border-black' : 'border-black/20'}`}>
-      {pro.isHighlighted && (
-        <div className="bg-black text-yellow-400 text-[10px] font-black py-1.5 text-center uppercase tracking-widest">
-          PROFISSIONAL DESTAQUE ★
+    <div className={`bg-white rounded-2xl border-2 overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-card transition-all ${pro.plan === 'Premium' ? 'border-yellow-600' : pro.plan === 'VIP' ? 'border-black' : 'border-gray-200 opacity-90'}`}>
+      
+      {pro.plan === 'Premium' && (
+        <div className="bg-yellow-500 text-black text-[9px] font-black py-1 text-center uppercase tracking-widest flex items-center justify-center gap-1">
+          <Zap className="w-3 h-3 fill-black" /> PROFISSIONAL PREMIUM ANUAL <Zap className="w-3 h-3 fill-black" />
+        </div>
+      )}
+      {pro.plan === 'VIP' && (
+        <div className="bg-black text-yellow-400 text-[9px] font-black py-1 text-center uppercase tracking-widest">
+          PROFISSIONAL VIP ★
         </div>
       )}
 
       <div className="p-4 flex gap-4">
         <div className="relative shrink-0">
-          <img src={pro.photoUrl || 'https://img.icons8.com/fluency/200/user-male-circle.png'} className="w-16 h-16 rounded-xl object-cover border-2 border-black bg-gray-50" alt={pro.proName} />
+          <img src={pro.photoUrl || 'https://img.icons8.com/fluency/200/user-male-circle.png'} className={`w-16 h-16 rounded-xl object-cover border-2 bg-gray-50 ${pro.plan === 'Premium' ? 'border-yellow-600' : 'border-black'}`} alt={pro.proName} />
           {pro.isEmergency24h && (
              <div className="absolute -bottom-1 -right-1 bg-red-600 text-white p-1 rounded-full border border-white">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-2.5 h-2.5" />
              </div>
           )}
         </div>
@@ -323,16 +298,23 @@ const ProCard: React.FC<{
           </div>
           
           <div className="flex items-center gap-1 mt-1">
-             <Star className="w-3 h-3 fill-black" />
+             <Star className={`w-3 h-3 ${isVipOrPremium ? 'fill-black' : 'fill-gray-300'}`} />
              <span className="text-[10px] font-black">{avgRating} ({pro.reviews?.length || 0})</span>
-             <span className="text-black/20 mx-1">•</span>
-             <Eye className="w-3 h-3" />
-             <span className="text-[10px] font-black">{pro.views || 0}</span>
+             {isVipOrPremium && (
+               <>
+                 <span className="text-black/20 mx-1">•</span>
+                 <Eye className="w-3 h-3" />
+                 <span className="text-[10px] font-black">{pro.views || 0}</span>
+               </>
+             )}
           </div>
 
           <p className="text-[9px] font-black text-yellow-600 uppercase mt-1 truncate">
             {pro.profileType === 'Profissional' ? <Briefcase className="w-2 h-2 inline mr-1" /> : <ShoppingBag className="w-2 h-2 inline mr-1" />}
             {pro.subCategory}
+          </p>
+          <p className="text-[8px] font-black text-black/40 uppercase mt-0.5 truncate flex items-center gap-0.5">
+            <MapPin className="w-2 h-2" /> {pro.city} - {pro.state}
           </p>
         </div>
       </div>
@@ -345,13 +327,13 @@ const ProCard: React.FC<{
         <a 
           href={`https://wa.me/${pro.whatsapp?.replace(/\D/g, '')}`} 
           target="_blank" 
-          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-0.5 transition-all"
+          className="flex-1 bg-green-600 text-white font-black py-2.5 rounded-xl border-2 border-black flex items-center justify-center gap-2 text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none"
         >
           WhatsApp
         </a>
         <button 
           onClick={handleOpenDetails}
-          className="flex-1 bg-black text-white font-black py-2.5 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-0.5 transition-all"
+          className="flex-1 bg-black text-white font-black py-2.5 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none"
         >
           {showDetails ? 'Ver Menos' : 'Ver Mais'}
         </button>
@@ -359,19 +341,58 @@ const ProCard: React.FC<{
 
       {showDetails && (
         <div className="px-4 pb-4 space-y-4 animate-in slide-in-from-top duration-300">
+          
+          {isVipOrPremium && (
+            <div className="space-y-3">
+              {pro.servicesPhotos && pro.servicesPhotos.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-black text-[9px] uppercase text-black/40 flex items-center gap-1">Galeria de Serviços</h4>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {pro.servicesPhotos.map((img, i) => (
+                      <img key={i} src={img} className="w-24 h-24 object-cover rounded-lg border border-black/10 shrink-0" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pro.servicesList && pro.servicesList.length > 0 && (
+                <div className="bg-white border-2 border-black/5 rounded-xl p-3 space-y-2">
+                  <h4 className="font-black text-[9px] uppercase text-black/40 flex items-center gap-1"><List className="w-3 h-3"/> Serviços e Preços</h4>
+                  <div className="space-y-1">
+                    {pro.servicesList.map((item, i) => (
+                      <div key={i} className="flex justify-between border-b border-black/5 pb-1">
+                        <span className="text-[10px] font-bold">{item.name}</span>
+                        <span className="text-[10px] font-black text-yellow-600">{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button 
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-[9px] font-black uppercase text-yellow-800"
+              >
+                <Share2 className="w-3 h-3" /> Compartilhar Perfil
+              </button>
+            </div>
+          )}
+
+          <div className="p-3 bg-gray-50 rounded-xl border border-black/5 space-y-1">
+             <h4 className="font-black text-[9px] uppercase text-black/40 flex items-center gap-1"><MapPin className="w-3 h-3" /> Localização</h4>
+             <p className="text-[10px] font-bold text-black leading-tight">{fullAddress || 'Endereço não informado.'}</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <a href={`tel:${pro.phone}`} className="flex items-center justify-center gap-2 bg-white border-2 border-black p-2 rounded-lg font-black text-[9px] uppercase hover:bg-gray-50"><Phone className="w-3 h-3"/> Ligar</a>
             <a href={`mailto:${pro.email}`} className="flex items-center justify-center gap-2 bg-white border-2 border-black p-2 rounded-lg font-black text-[9px] uppercase hover:bg-gray-50"><Mail className="w-3 h-3"/> E-mail</a>
           </div>
 
           <div className="space-y-3 bg-yellow-50 p-3 rounded-xl border border-black/5">
-            <h4 className="font-black text-[10px] uppercase flex justify-between">
-              Avaliações 
-              <span className="text-[8px] opacity-40">({pro.reviews?.length || 0})</span>
-            </h4>
-            <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-hide">
-              {pro.reviews && pro.reviews.filter(r => !r.hidden).length > 0 ? (
-                pro.reviews.filter(r => !r.hidden).map(r => (
+            <h4 className="font-black text-[10px] uppercase flex justify-between">Avaliações <span className="text-[8px] opacity-40">({pro.reviews?.length || 0})</span></h4>
+            {isVipOrPremium ? (
+              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-hide">
+                {pro.reviews?.filter(r => !r.hidden).map(r => (
                   <div key={r.id} className="bg-white p-2 rounded-lg border border-black/10">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[8px] font-black uppercase">{r.userName}</span>
@@ -381,14 +402,14 @@ const ProCard: React.FC<{
                     </div>
                     <p className="text-[10px] italic leading-tight">"{r.comment}"</p>
                   </div>
-                ))
-              ) : (
-                <p className="text-[9px] text-center italic py-2 opacity-40">Nenhuma avaliação ainda.</p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[8px] text-center italic py-2 opacity-50">Avaliações visíveis apenas para perfis VIP/Premium.</p>
+            )}
 
-            <div className="pt-3 border-t border-black/5 space-y-2">
-              <p className="text-[9px] font-black uppercase text-center">Deixe sua avaliação</p>
+            <div className="pt-3 border-t border-black/5 space-y-2 text-center">
+              <p className="text-[9px] font-black uppercase">Avaliar Profissional</p>
               <div className="flex justify-center gap-1">
                 {[1,2,3,4,5].map(i => (
                   <button key={i} onClick={() => setRating(i)}>
@@ -397,16 +418,12 @@ const ProCard: React.FC<{
                 ))}
               </div>
               <textarea 
-                placeholder="Como foi o atendimento? (Opcional)"
-                className="w-full text-[10px] p-2 rounded-lg border-2 border-black outline-none bg-white focus:border-yellow-600"
+                placeholder="Como foi o atendimento?"
+                className="w-full text-[10px] p-2 rounded-lg border-2 border-black outline-none bg-white"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
-              <button 
-                onClick={handleReview}
-                disabled={isSubmittingReview}
-                className="w-full bg-black text-yellow-400 font-black py-2.5 rounded-lg text-[9px] uppercase disabled:opacity-50"
-              >
+              <button onClick={handleReview} disabled={isSubmittingReview} className="w-full bg-black text-yellow-400 font-black py-2.5 rounded-lg text-[9px] uppercase">
                 {isSubmittingReview ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Enviar Avaliação'}
               </button>
             </div>

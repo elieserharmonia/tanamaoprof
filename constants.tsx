@@ -1,6 +1,13 @@
 
 import React from 'react';
 
+export const SUPPORT_PHONE = '5514996074964';
+
+export const PLAN_PRICES = {
+  MONTHLY_VIP: 9.90,
+  ANNUAL_PREMIUM: 99.00
+};
+
 export const PRO_CATEGORIES = {
   'Construção e Reformas': [
     'Pedreiro', 'Pintor', 'Eletricista', 'Encanador / Bombeiro hidráulico', 
@@ -76,11 +83,15 @@ export const INITIAL_PROS: any[] = [
   {
     id: '1',
     profileType: 'Profissional',
+    plan: 'Premium',
     companyName: 'CONSTRUÇÕES TORRINHA',
     proName: 'João Silva',
     bio: 'Especialista em reformas e construção civil há mais de 15 anos.',
     category: 'Construção e Reformas',
     subCategory: 'Pedreiro',
+    street: 'Rua das Flores',
+    number: '123',
+    neighborhood: 'Centro',
     state: 'SP',
     city: 'Torrinha',
     phone: '14998887777',
@@ -95,18 +106,23 @@ export const INITIAL_PROS: any[] = [
     reviews: [
       { id: 'r1', userName: 'Maria Santos', rating: 5, comment: 'Excelente trabalho!', date: '2023-10-01', hidden: false }
     ],
-    servicesPhotos: [],
+    servicesPhotos: ['https://images.unsplash.com/photo-1541888946425-d81bb19480c5?auto=format&fit=crop&w=400&q=80'],
+    servicesList: [{ name: 'Reforma Completa', price: 'Sob consulta' }],
     views: 150,
     createdAt: '2023-01-01'
   },
   {
     id: '2',
     profileType: 'Comercio',
+    plan: 'VIP',
     companyName: 'PADARIA DO CENTRO',
     proName: 'Carlos Padeiro',
     bio: 'O melhor pão francês da região de Brotas.',
     category: 'Alimentação',
     subCategory: 'Padaria',
+    street: 'Avenida Principal',
+    number: '450',
+    neighborhood: 'Bairro Alto',
     state: 'SP',
     city: 'Brotas',
     phone: '1436531111',
@@ -120,7 +136,33 @@ export const INITIAL_PROS: any[] = [
     workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '06:00', end: '20:00', closed: false })),
     reviews: [],
     servicesPhotos: [],
+    servicesList: [{ name: 'Pão Francês', price: 'R$ 1,00/un' }],
     views: 85,
     createdAt: '2023-02-15'
+  },
+  {
+    id: '3',
+    profileType: 'Profissional',
+    plan: 'Gratuito',
+    proName: 'Maria Pinturas',
+    bio: 'Pinturas residenciais e comerciais com rapidez.',
+    category: 'Construção e Reformas',
+    subCategory: 'Pintor',
+    state: 'SP',
+    city: 'Torrinha',
+    phone: '14999990000',
+    email: 'maria@pintor.com',
+    whatsapp: '14999990000',
+    experienceYears: 5,
+    isVip: false,
+    isHighlighted: false,
+    isEmergency24h: false,
+    photoUrl: 'https://img.icons8.com/fluency/200/painter.png',
+    workingHours: [],
+    reviews: [],
+    servicesPhotos: [],
+    servicesList: [],
+    views: 12,
+    createdAt: '2024-01-10'
   }
 ];
