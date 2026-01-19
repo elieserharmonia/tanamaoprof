@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, UserPlus, ShieldCheck, LogOut, Loader2 } from 'lucide-react';
+import { Home, PlusCircle, ShieldCheck, LogOut, Loader2, Heart, User as UserIcon } from 'lucide-react';
 import { Tab, Professional, User } from './types';
 import { db } from './services/db';
 import HomeTab from './components/HomeTab';
@@ -34,7 +34,6 @@ const App: React.FC = () => {
       }
     };
 
-    // Escuta o evento de prompt de instalação
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -94,24 +93,24 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto bg-yellow-400 shadow-2xl relative">
+    <div className="min-h-screen flex flex-col max-w-md mx-auto bg-white shadow-2xl relative">
       <InstallBanner 
         deferredPrompt={deferredPrompt} 
         onInstall={handleInstallClick} 
       />
       
-      <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 flex flex-col gap-2 shadow-md">
+      <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 flex flex-col gap-2 shadow-sm">
         <div className="flex justify-between items-center gap-3">
           <div className="bg-black px-4 py-2 rounded-lg shrink-0">
             <h1 className="text-2xl font-black tracking-tighter italic text-yellow-400">TáNaMão</h1>
           </div>
           <div className="flex flex-col items-end flex-1">
             <p className="text-[10px] font-black uppercase text-black italic leading-none mb-1 tracking-tighter">
-              Precisou? TáNaMão!
+              A MAIOR VITRINE DA REGIÃO
             </p>
             {currentUser && (
               <div className="flex items-center gap-2 bg-black/10 px-2 py-1 rounded-md border border-black/5">
-                <span className="text-[10px] font-black uppercase text-black">Olá, {currentUser.name.split(' ')[0]}</span>
+                <span className="text-[10px] font-black uppercase text-black truncate max-w-[80px]">Olá, {currentUser.name.split(' ')[0]}</span>
                 <button onClick={handleLogout} className="text-black hover:text-red-700">
                   <LogOut className="w-3 h-3" />
                 </button>
@@ -147,35 +146,40 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-4 border-black p-2 flex justify-around items-center shadow-[0_-10px_30px_rgba(0,0,0,0.15)] z-[60]">
+      {/* Navigation (OLX Style) */}
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-2 border-black/5 p-2 flex justify-around items-end shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-[60]">
         <button 
           onClick={() => setActiveTab(Tab.HOME)}
-          className={`flex-1 flex flex-col items-center p-2 transition-all duration-300 ${activeTab === Tab.HOME ? 'text-black scale-110' : 'text-gray-400 scale-100 hover:text-gray-600'}`}
+          className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.HOME ? 'text-black' : 'text-gray-400'}`}
         >
-          <Home className={`w-6 h-6 ${activeTab === Tab.HOME ? 'fill-yellow-400' : ''}`} />
-          <span className="text-[10px] font-black uppercase mt-1">Home</span>
+          <Home className={`w-5 h-5 ${activeTab === Tab.HOME ? 'fill-yellow-400' : ''}`} />
+          <span className="text-[8px] font-black uppercase mt-1">Explorar</span>
         </button>
+
         <button 
           onClick={() => setActiveTab(Tab.PRO)}
-          className={`flex-1 flex flex-col items-center p-2 transition-all duration-300 ${activeTab === Tab.PRO ? 'text-black scale-110' : 'text-gray-400 scale-100 hover:text-gray-600'}`}
+          className="flex-1 flex flex-col items-center group"
         >
-          <UserPlus className={`w-6 h-6 ${activeTab === Tab.PRO ? 'fill-yellow-400' : ''}`} />
-          <span className="text-[10px] font-black uppercase mt-1">Perfil</span>
+          <div className={`-mt-10 mb-2 w-14 h-14 rounded-full border-4 border-white flex items-center justify-center shadow-xl transition-all active:scale-90 ${activeTab === Tab.PRO ? 'bg-black text-yellow-400' : 'bg-yellow-400 text-black'}`}>
+             <PlusCircle className="w-8 h-8" />
+          </div>
+          <span className="text-[8px] font-black uppercase mb-1">Anunciar</span>
         </button>
+
         <button 
           onClick={() => setActiveTab(Tab.ADMIN)}
-          className={`flex-1 flex flex-col items-center p-2 transition-all duration-300 ${activeTab === Tab.ADMIN ? 'text-black scale-110' : 'text-gray-400 scale-100 hover:text-gray-600'}`}
+          className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.ADMIN ? 'text-black' : 'text-gray-400'}`}
         >
-          <ShieldCheck className={`w-6 h-6 ${activeTab === Tab.ADMIN ? 'fill-yellow-400' : ''}`} />
-          <span className="text-[10px] font-black uppercase mt-1">Gerir</span>
+          <ShieldCheck className={`w-5 h-5 ${activeTab === Tab.ADMIN ? 'fill-yellow-400' : ''}`} />
+          <span className="text-[8px] font-black uppercase mt-1">Config</span>
         </button>
       </nav>
 
-      {loading && professionals.length > 0 && (
+      {loading && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[100] flex items-center justify-center">
-          <div className="bg-white p-4 rounded-2xl border-4 border-black shadow-2xl flex items-center gap-3">
+          <div className="bg-white p-4 rounded-2xl border-4 border-black shadow-2xl flex items-center gap-3 animate-in zoom-in duration-300">
             <Loader2 className="w-6 h-6 animate-spin text-black" />
-            <span className="font-black uppercase text-xs">Atualizando...</span>
+            <span className="font-black uppercase text-xs">Aguarde...</span>
           </div>
         </div>
       )}

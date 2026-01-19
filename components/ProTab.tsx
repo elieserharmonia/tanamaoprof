@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { Professional, User, ServiceItem, PaymentRecord, PlanType } from '../types';
 import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES, ALL_SPECIALTIES, SUPPORT_PHONE } from '../constants';
 import { db } from '../services/db';
 import { paymentService } from '../services/payment';
-import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle } from 'lucide-react';
+import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation } from 'lucide-react';
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
@@ -22,6 +23,9 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [existingPro, setExistingPro] = useState<Professional | null>(null);
   const [activeView, setActiveView] = useState<'profile' | 'plans'>('profile');
   
+  // Geocoding loading state
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   // Estados do Checkout
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('selection');
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Gratuito');
@@ -47,7 +51,9 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     servicesPhotos: [],
     servicesList: [],
     views: 0,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    latitude: undefined,
+    longitude: undefined
   });
 
   useEffect(() => {
@@ -65,6 +71,72 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     checkExistingProfile();
     return () => clearInterval(pollInterval.current);
   }, [currentUser]);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Navegador não suporta geolocalização.");
+      return;
+    }
+    setIsGeocoding(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData(prev => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }));
+        setIsGeocoding(false);
+        alert("Localização capturada com sucesso!");
+      },
+      (err) => {
+        console.error(err);
+        setIsGeocoding(false);
+        alert("Erro ao capturar localização. Verifique as permissões.");
+      }
+    );
+  };
+
+  const geocodeAddress = async () => {
+    if (!formData.city || !formData.state) {
+      alert("Informe cidade e estado para converter o endereço.");
+      return;
+    }
+    
+    setIsGeocoding(true);
+    try {
+      const addressString = `${formData.street || ''} ${formData.number || ''}, ${formData.neighborhood || ''}, ${formData.city}, ${formData.state}, Brasil`;
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Encontre as coordenadas exatas (latitude e longitude) para este endereço no Brasil: ${addressString}. Retorne APENAS um JSON com as chaves "latitude" e "longitude".`,
+        config: {
+          tools: [{googleMaps: {}}],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              latitude: { type: Type.NUMBER },
+              longitude: { type: Type.NUMBER }
+            },
+            required: ["latitude", "longitude"]
+          }
+        }
+      });
+      
+      const result = JSON.parse(response.text);
+      setFormData(prev => ({
+        ...prev,
+        latitude: result.latitude,
+        longitude: result.longitude
+      }));
+      alert("Localização atualizada via endereço!");
+    } catch (err) {
+      console.error(err);
+      alert("Não foi possível converter o endereço automaticamente. Use o botão 'Usar minha localização atual' se estiver no local.");
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   const startPolling = (paymentId: string) => {
     clearInterval(pollInterval.current);
@@ -128,6 +200,15 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    
+    // Se não tiver coordenadas, tenta geocodificar antes de salvar
+    if (!formData.latitude || !formData.longitude) {
+      const confirmSave = confirm("Você não definiu sua localização no mapa. Deseja tentar converter seu endereço em coordenadas agora?");
+      if (confirmSave) {
+        await geocodeAddress();
+      }
+    }
+
     const pro: Professional = {
       ...formData,
       id: existingPro ? existingPro.id : Math.random().toString(36).substr(2, 9),
@@ -209,7 +290,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
             <button onClick={() => setCheckoutStep('waiting')} className="w-full bg-yellow-400 border-2 border-black py-3 rounded-xl font-black text-xs uppercase">
               Já paguei
             </button>
-            <p className="text-[9px] font-bold text-black/40 text-center uppercase">Após o pagamento, a confirmação pode levar alguns segundos.</p>
           </div>
           <div className="flex flex-col gap-2">
             <button onClick={() => existingPro && paymentService.sendWhatsAppNotification('pending', existingPro, 'support')} className="flex items-center justify-center gap-2 text-[10px] font-black uppercase text-green-700 bg-green-50 p-3 rounded-xl border border-green-200">
@@ -228,7 +308,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
              <Loader2 className="w-12 h-12 text-yellow-400 animate-spin" />
            </div>
            <h2 className="text-xl font-black uppercase italic text-center">Aguardando pagamento</h2>
-           <p className="text-sm font-bold text-center text-black/60">Estamos aguardando a confirmação do seu PIX. Assim que o pagamento for confirmado, seu plano será ativado automaticamente.</p>
            <button onClick={() => setCheckoutStep('pix_display')} className="text-xs font-black uppercase underline">Ver QR Code novamente</button>
         </div>
       );
@@ -241,13 +320,9 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
              <Check className="w-12 h-12 text-white" />
            </div>
            <h2 className="text-2xl font-black uppercase italic text-center">Pagamento confirmado</h2>
-           <p className="text-sm font-bold text-center text-black/60">Seu plano foi ativado com sucesso. Seu perfil agora está em destaque.</p>
            <div className="w-full space-y-3">
              <button onClick={() => { setCheckoutStep('selection'); setActiveView('profile'); }} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase shadow-lg">
                Ir para meu perfil
-             </button>
-             <button onClick={() => existingPro && paymentService.sendWhatsAppNotification('approved', existingPro, 'support')} className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-[10px] uppercase text-green-700 border-2 border-green-200">
-               <MessageCircle className="w-4 h-4" /> Confirmar no WhatsApp Suporte
              </button>
            </div>
         </div>
@@ -261,7 +336,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
              <AlertCircle className="w-12 h-12 text-white" />
            </div>
            <h2 className="text-xl font-black uppercase italic text-center">Pagamento expirado</h2>
-           <p className="text-sm font-bold text-center text-black/60">O prazo para pagamento do PIX expirou. Você pode gerar uma nova cobrança para continuar.</p>
            <button onClick={() => setCheckoutStep('selection')} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase shadow-lg">
              Gerar novo PIX
            </button>
@@ -337,8 +411,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex justify-center">
           <div className="relative group">
-            <img src={formData.photoUrl} className="w-24 h-24 rounded-2xl border-4 border-black object-cover bg-white shadow-xl" alt="Preview" />
-            <div className="absolute -bottom-2 -right-2 bg-black p-2 rounded-full border-2 border-white shadow-lg"><Camera className="w-4 h-4 text-white" /></div>
+            <img src={formData.photoUrl} className="w-20 h-20 rounded-full border-4 border-black object-cover bg-white shadow-xl" alt="Preview" />
+            <div className="absolute -bottom-1 -right-1 bg-black p-2 rounded-full border-2 border-white shadow-lg"><Camera className="w-3 h-3 text-white" /></div>
             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => {
                const file = e.target.files?.[0];
                if (file) {
@@ -396,12 +470,50 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           <div className="space-y-1">
              <label className="text-[10px] font-black uppercase text-black/40">Slogan / Bio</label>
              <textarea 
-               placeholder="Conte um pouco sobre seu trabalho, experiência e diferenciais. (Capriche na descrição!)" 
+               placeholder="Conte um pouco sobre seu trabalho..." 
                className="w-full bg-white border-2 border-black rounded-xl p-3 font-medium text-sm outline-none shadow-sm focus:border-yellow-600 min-h-[150px] resize-none" 
                rows={5} 
                value={formData.bio} 
                onChange={e => setFormData({...formData, bio: e.target.value})} 
              />
+          </div>
+
+          <div className="bg-white border-2 border-black rounded-3xl p-4 space-y-4">
+             <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black uppercase text-black/40">Localização do Negócio</h4>
+                <div className="flex items-center gap-1">
+                   <div className={`w-2 h-2 rounded-full ${formData.latitude ? 'bg-green-500' : 'bg-red-500'}`} />
+                   <span className="text-[8px] font-black uppercase">{formData.latitude ? 'Coordenadas Ativas' : 'Pendente'}</span>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+             </div>
+             <input type="text" placeholder="Rua e Número" className="w-full bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={`${formData.street || ''} ${formData.number || ''}`} onChange={e => {
+                const parts = e.target.value.split(' ');
+                setFormData({...formData, street: parts[0], number: parts[1] || ''});
+             }} />
+
+             <div className="flex gap-2 pt-2">
+                <button 
+                  type="button" 
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGeocoding}
+                  className="flex-1 flex items-center justify-center gap-2 bg-black text-yellow-400 py-3 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all"
+                >
+                  {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Navigation className="w-4 h-4" /> Usar GPS Atual</>}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={geocodeAddress}
+                  disabled={isGeocoding}
+                  className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-black py-3 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all"
+                >
+                  <MapPin className="w-4 h-4" /> Validar Endereço
+                </button>
+             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-2">
@@ -410,8 +522,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
               <input type="tel" placeholder="(00) 00000-0000" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm focus:border-yellow-600" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-black/40">Cidade</label>
-              <input type="text" placeholder="Cidade" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm focus:border-yellow-600" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
+              <label className="text-[10px] font-black uppercase text-black/40">Telefone Fixo</label>
+              <input type="tel" placeholder="(00) 0000-0000" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm focus:border-yellow-600" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
             </div>
           </div>
 
@@ -429,7 +541,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           </div>
         </div>
 
-        <button type="submit" className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
+        <button type="submit" disabled={isGeocoding} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
           SALVAR MEU PERFIL
         </button>
       </form>

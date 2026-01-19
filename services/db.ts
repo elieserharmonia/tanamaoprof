@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig } from '../types';
+import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig, UserLocation } from '../types';
 import { INITIAL_PROS } from '../constants';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qcsxtkzgjrhzmvwvqpse.supabase.co';
@@ -10,6 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const FAVS_KEY = 'tanamao_favs_v2';
 const USER_KEY = 'tanamao_user_v2';
+const LAST_LOC_KEY = 'tanamao_last_loc';
 
 export const db = {
   // --- AUTH METHODS ---
@@ -91,6 +92,28 @@ export const db = {
 
   async recordPayment(payment: PaymentRecord): Promise<void> {
      await supabase.from('payments').insert([payment]);
+  },
+
+  // --- GEOLOCATION HELPERS ---
+  calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  },
+
+  saveLastLocation(loc: UserLocation): void {
+    localStorage.setItem(LAST_LOC_KEY, JSON.stringify(loc));
+  },
+
+  getLastLocation(): UserLocation | null {
+    const saved = localStorage.getItem(LAST_LOC_KEY);
+    return saved ? JSON.parse(saved) : null;
   },
 
   // --- LOCAL STORAGE ---

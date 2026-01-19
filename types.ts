@@ -10,6 +10,14 @@ export interface User {
   password?: string;
 }
 
+export interface UserLocation {
+  lat: number;
+  lng: number;
+  city?: string;
+  state?: string;
+  accuracy?: number;
+}
+
 export interface WorkingHours {
   day: string;
   start: string;
@@ -76,6 +84,8 @@ export interface Professional {
   neighborhood?: string;
   state: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
   phone: string;
   email: string;
   whatsapp: string;
