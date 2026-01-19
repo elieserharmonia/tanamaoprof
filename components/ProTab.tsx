@@ -78,8 +78,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         if (updated) {
           setExistingPro(updated);
           setFormData(updated);
-          // Notificação de Sucesso automática (opcional, aqui abrindo para o usuário)
-          // paymentService.sendWhatsAppNotification('approved', updated);
         }
         setCheckoutStep('success');
       } else if (status === 'expired') {
@@ -397,17 +395,23 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
 
           <div className="space-y-1">
              <label className="text-[10px] font-black uppercase text-black/40">Slogan / Bio</label>
-             <textarea placeholder="O que você faz de melhor?" className="w-full bg-white border-2 border-black rounded-xl p-3 font-medium text-sm outline-none shadow-sm" rows={2} value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
+             <textarea 
+               placeholder="Conte um pouco sobre seu trabalho, experiência e diferenciais. (Capriche na descrição!)" 
+               className="w-full bg-white border-2 border-black rounded-xl p-3 font-medium text-sm outline-none shadow-sm focus:border-yellow-600 min-h-[150px] resize-none" 
+               rows={5} 
+               value={formData.bio} 
+               onChange={e => setFormData({...formData, bio: e.target.value})} 
+             />
           </div>
           
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-black/40">WhatsApp</label>
-              <input type="tel" placeholder="(00) 00000-0000" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
+              <input type="tel" placeholder="(00) 00000-0000" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm focus:border-yellow-600" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-black/40">Cidade</label>
-              <input type="text" placeholder="Cidade" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
+              <input type="text" placeholder="Cidade" className="bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm focus:border-yellow-600" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
             </div>
           </div>
 

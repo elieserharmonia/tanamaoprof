@@ -320,7 +320,7 @@ const ProCard: React.FC<{
       </div>
 
       <div className="px-4 py-2 bg-gray-50 border-t border-black/5">
-        <p className="text-[10px] text-gray-600 italic line-clamp-1">"{pro.bio || 'Sem descrição.'}"</p>
+        <p className="text-[10px] text-gray-600 italic line-clamp-3">"{pro.bio || 'Sem descrição.'}"</p>
       </div>
 
       <div className="p-4 pt-0 flex gap-2">
