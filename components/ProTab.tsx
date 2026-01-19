@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Professional, User } from '../types';
-import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES } from '../constants';
+import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty } from '../constants';
 import { db } from '../services/db';
-import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag } from 'lucide-react';
+import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle } from 'lucide-react';
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
@@ -16,6 +16,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [authData, setAuthData] = useState({ email: '', password: '', name: '' });
   const [existingPro, setExistingPro] = useState<Professional | null>(null);
+  const [isCustomSpecialty, setIsCustomSpecialty] = useState(false);
+  const [customValue, setCustomValue] = useState('');
 
   const [formData, setFormData] = useState<Partial<Professional>>({
     profileType: 'Profissional',
@@ -31,7 +33,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     whatsapp: '',
     experienceYears: 0,
     isEmergency24h: false,
-    // Placeholder fixo para evitar mudanças involuntárias
     photoUrl: 'https://img.icons8.com/fluency/200/user-male-circle.png',
     workingHours: DAYS_OF_WEEK.map(day => ({ day, start: '08:00', end: '18:00', closed: false })),
     reviews: [],
@@ -109,11 +110,17 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
-    if (!formData.category) return alert('Selecione uma categoria obrigatória.');
-    if (formData.profileType === 'Profissional' && !formData.subCategory) return alert('Selecione uma subcategoria.');
+    
+    const finalSubCategory = isCustomSpecialty ? customValue : formData.subCategory;
+    if (!finalSubCategory) return alert('Selecione seu serviço ou ramo de atuação.');
+
+    // Descobrir a categoria automaticamente antes de salvar
+    const category = getCategoryFromSpecialty(finalSubCategory);
 
     const newPro: Professional = {
       ...formData,
+      subCategory: finalSubCategory,
+      category,
       id: existingPro ? existingPro.id : Math.random().toString(36).substr(2, 9),
       userId: currentUser.id,
       companyName: formData.companyName?.toUpperCase(),
@@ -123,7 +130,19 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     onSave(newPro);
   };
 
-  const currentCategories = formData.profileType === 'Profissional' ? PRO_CATEGORIES : COMERCIO_CATEGORIES;
+  const handleSpecialtyChange = (val: string) => {
+    if (val === 'CUSTOM_FIELD') {
+      setIsCustomSpecialty(true);
+      setFormData({ ...formData, subCategory: '' });
+    } else {
+      setIsCustomSpecialty(false);
+      setFormData({ ...formData, subCategory: val });
+    }
+  };
+
+  const currentSpecialties = formData.profileType === 'Profissional' 
+    ? Object.values(PRO_CATEGORIES).flat().sort()
+    : Object.values(COMERCIO_CATEGORIES).flat().sort();
 
   if (!currentUser || currentUser.id === 'temp') {
     return (
@@ -192,24 +211,23 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     <div className="p-4 pb-20">
       <div className="bg-black text-yellow-400 p-6 rounded-3xl mb-8 border-b-4 border-yellow-600 shadow-xl">
         <h2 className="text-2xl font-black italic tracking-tighter uppercase">{existingPro ? 'Editar Cadastro' : 'Novo Cadastro'}</h2>
-        <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Preencha sua vitrine profissional</p>
+        <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Sua vitrine profissional em 1 minuto</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* TIPO DE PERFIL */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-black/50 px-1">Tipo de Perfil</label>
+          <label className="text-[10px] font-black uppercase text-black/50 px-1">Você é...</label>
           <div className="grid grid-cols-2 gap-2">
             <button 
               type="button"
-              onClick={() => setFormData({...formData, profileType: 'Profissional', category: '', subCategory: ''})}
+              onClick={() => { setFormData({...formData, profileType: 'Profissional', subCategory: ''}); setIsCustomSpecialty(false); }}
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-black text-[10px] uppercase transition-all ${formData.profileType === 'Profissional' ? 'bg-black text-yellow-400 border-black' : 'bg-white text-black border-black/10 opacity-50'}`}
             >
               <Briefcase className="w-4 h-4" /> Profissional
             </button>
             <button 
               type="button"
-              onClick={() => setFormData({...formData, profileType: 'Comercio', category: '', subCategory: ''})}
+              onClick={() => { setFormData({...formData, profileType: 'Comercio', subCategory: ''}); setIsCustomSpecialty(false); }}
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-black text-[10px] uppercase transition-all ${formData.profileType === 'Comercio' ? 'bg-black text-yellow-400 border-black' : 'bg-white text-black border-black/10 opacity-50'}`}
             >
               <ShoppingBag className="w-4 h-4" /> Comércio / Loja
@@ -217,7 +235,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           </div>
         </div>
 
-        {/* FOTO */}
         <div className="flex justify-center">
           <div className="relative group cursor-pointer">
             <img src={formData.photoUrl} className="w-24 h-24 rounded-2xl border-4 border-black object-cover bg-white" alt="Preview" />
@@ -228,41 +245,40 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           </div>
         </div>
 
-        {/* CATEGORIZAÇÃO */}
-        <div className="grid gap-4 bg-black/5 p-4 rounded-2xl border border-black/10">
+        <div className="bg-black/5 p-4 rounded-2xl border border-black/10 space-y-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase text-black/50">Categoria Principal</label>
+            <label className="text-[10px] font-black uppercase text-black/50">Qual seu serviço ou ramo de atuação?</label>
             <select 
               className="w-full bg-white border-2 border-black rounded-xl px-4 py-3 outline-none font-bold text-xs"
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value, subCategory: ''})}
-              required
+              value={isCustomSpecialty ? 'CUSTOM_FIELD' : formData.subCategory}
+              onChange={(e) => handleSpecialtyChange(e.target.value)}
+              required={!isCustomSpecialty}
             >
-              <option value="">Selecione...</option>
-              {Object.keys(currentCategories).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase text-black/50">
-              {formData.profileType === 'Profissional' ? 'Subcategoria / Profissão' : 'Especialidade / Ramo'}
-            </label>
-            <select 
-              className="w-full bg-white border-2 border-black rounded-xl px-4 py-3 outline-none font-bold text-xs"
-              value={formData.subCategory}
-              onChange={(e) => setFormData({...formData, subCategory: e.target.value})}
-              required
-              disabled={!formData.category}
-            >
-              <option value="">Selecione...</option>
-              {formData.category && (currentCategories as Record<string, string[]>)[formData.category]?.map((sub: string) => (
+              <option value="">Selecione sua especialidade...</option>
+              {currentSpecialties.map((sub: string) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
+              <option value="CUSTOM_FIELD" className="bg-black text-yellow-400 font-black italic">OUTRO (QUERO DIGITAR MEU RAMO)</option>
             </select>
           </div>
+
+          {isCustomSpecialty && (
+            <div className="space-y-1 animate-in slide-in-from-top-2 duration-300">
+              <label className="text-[10px] font-black uppercase text-yellow-600 flex items-center gap-1">
+                <PlusCircle className="w-3 h-3" /> Digite sua especialidade personalizada
+              </label>
+              <input 
+                type="text"
+                placeholder="Ex: Consultor de Vendas, Tatuador, etc."
+                className="w-full bg-white border-2 border-yellow-600 rounded-xl px-4 py-3 font-bold text-xs outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]"
+                value={customValue}
+                onChange={(e) => setCustomValue(e.target.value)}
+                required
+              />
+            </div>
+          )}
         </div>
 
-        {/* DADOS BÁSICOS */}
         <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase text-black/50 px-1">Nome do Negócio / Fantasia</label>
@@ -271,6 +287,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
               className="w-full bg-white border-2 border-black rounded-xl px-4 py-3 font-bold uppercase text-sm"
               value={formData.companyName}
               onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+              placeholder="Ex: ESCOLA DE MÚSICA HARMONIA"
             />
           </div>
 
@@ -281,14 +298,14 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
               className="w-full bg-white border-2 border-black rounded-xl px-4 py-3 font-medium text-sm"
               value={formData.bio}
               onChange={(e) => setFormData({...formData, bio: e.target.value})}
-              placeholder="Ex: Aberto todos os dias, fazemos entregas..."
+              placeholder="Ex: Aprenda música de uma forma simples, direta e no seu tempo, sem pressão."
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <input 
               type="tel" 
-              placeholder="WhatsApp"
+              placeholder="WhatsApp (DDD + Número)"
               className="bg-white border-2 border-black rounded-xl px-4 py-3 font-bold text-xs"
               value={formData.whatsapp}
               onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}

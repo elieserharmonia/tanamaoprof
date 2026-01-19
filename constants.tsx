@@ -1,55 +1,34 @@
 
 import React from 'react';
-import { 
-  Briefcase, 
-  ShoppingBasket, 
-  Croissant, 
-  PlusSquare, 
-  Building2, 
-  Clock, 
-  Phone, 
-  Mail, 
-  MessageSquare, 
-  Share2, 
-  Star,
-  MapPin,
-  AlertCircle,
-  Hammer,
-  Truck,
-  Zap,
-  ShieldCheck,
-  Cpu,
-  Coffee,
-  HeartPulse,
-  Home as HomeIcon,
-  Sparkles
-} from 'lucide-react';
 
 export const PRO_CATEGORIES = {
   'Construção e Reformas': [
     'Pedreiro', 'Pintor', 'Eletricista', 'Encanador / Bombeiro hidráulico', 
-    'Gesseiro', 'Azulejista', 'Marceneiro', 'Carpinteiro', 'Serralheiro', 'Calheiro'
+    'Gesseiro', 'Azulejista', 'Marceneiro', 'Carpinteiro', 'Serralheiro', 'Calheiro', 'Montador de Móveis'
   ],
   'Serviços Domésticos': [
-    'Diarista', 'Faxineira(o)', 'Passadeira', 'Cozinheira(o)', 'Babá', 'Cuidador(a) de idosos'
+    'Diarista', 'Faxineira', 'Passadeira', 'Cozinheira(o)', 'Babá', 'Cuidador(a) de idosos'
+  ],
+  'Beleza e Estética': [
+    'Manicure', 'Pedicure', 'Cabeleireiro(a)', 'Barbeiro', 'Maquiadora', 'Esteticista', 'Depiladora'
+  ],
+  'Profissionais Liberais': [
+    'Advogado', 'Engenheiro', 'Arquiteto', 'Contador', 'Veterinário', 'Nutricionista', 'Psicólogo'
+  ],
+  'Veículos e Transporte': [
+    'Mecânico', 'Elétrica Automotiva', 'Funileiro', 'Guincho / Reboque', 'Lavador de carro', 'Borracheiro'
   ],
   'Jardim e Área Externa': [
     'Jardineiro', 'Paisagista', 'Podador de árvores', 'Piscineiro'
   ],
-  'Veículos e Transporte': [
-    'Mecânico', 'Eletricista automotivo', 'Funileiro', 'Guincho / Reboque', 'Lavador automotivo'
-  ],
   'Instalação e Manutenção': [
     'Técnico em ar-condicionado', 'Técnico em refrigeração', 'Instalador de TV / antena', 'Técnico em internet e redes'
   ],
-  'Segurança e Acesso': [
-    'Chaveiro', 'Instalador de câmeras', 'Instalador de alarmes', 'Porteiro eletrônico'
-  ],
   'Tecnologia': [
-    'Técnico em informática', 'Técnico em celulares', 'Suporte de TI'
+    'Técnico em informática', 'Técnico em celulares', 'Suporte de TI', 'Desenvolvedor'
   ],
   'Outros Serviços': [
-    'Vidraceiro', 'Estofador', 'Montador de móveis', 'Dedetizador'
+    'Vidraceiro', 'Estofador', 'Dedetizador', 'Chaveiro', 'Fotógrafo'
   ]
 };
 
@@ -72,7 +51,18 @@ export const COMERCIO_CATEGORIES = {
   ]
 };
 
-// Fix: Export CATEGORIES as a flattened list of all category keys for AdminTab
+export const ALL_SPECIALTIES = [
+  ...Object.values(PRO_CATEGORIES).flat(),
+  ...Object.values(COMERCIO_CATEGORIES).flat()
+].sort();
+
+export const getCategoryFromSpecialty = (specialty: string): string => {
+  for (const [cat, list] of Object.entries({...PRO_CATEGORIES, ...COMERCIO_CATEGORIES})) {
+    if (list.includes(specialty)) return cat;
+  }
+  return 'Outros';
+};
+
 export const CATEGORIES = [
   ...Object.keys(PRO_CATEGORIES).map(cat => ({ id: cat, label: cat })),
   ...Object.keys(COMERCIO_CATEGORIES).map(cat => ({ id: cat, label: cat }))
@@ -82,7 +72,6 @@ export const DAYS_OF_WEEK = [
   'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'
 ];
 
-// Placeholder fix: Using static images to prevent "auto-changing" behavior
 export const INITIAL_PROS: any[] = [
   {
     id: '1',

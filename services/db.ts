@@ -71,6 +71,7 @@ export const db = {
         .from('professionals')
         .select('data');
       
+      // Se houver dados no banco, prioriza eles e ignora os iniciais para evitar confusão de logos
       if (error) return INITIAL_PROS;
       if (!data || data.length === 0) return INITIAL_PROS;
       
@@ -87,6 +88,7 @@ export const db = {
 
   async saveProfessional(pro: Professional): Promise<void> {
     try {
+      // Garantir que a imagem está sendo salva exatamente como enviada no objeto pro
       const { error } = await supabase
         .from('professionals')
         .upsert({ 

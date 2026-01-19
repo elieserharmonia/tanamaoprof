@@ -44,7 +44,7 @@ const InstallBanner: React.FC<InstallBannerProps> = ({ deferredPrompt, onInstall
             <Download className="w-6 h-6 text-black" />
           </div>
           <div className="flex-1 space-y-1">
-            <h3 className="font-black text-sm uppercase tracking-tighter text-yellow-400">Instalar Aplicativo</h3>
+            <h3 className="font-black text-sm uppercase tracking-tighter text-yellow-400">Adicionar à tela inicial</h3>
             {isIOS ? (
               <div className="space-y-3">
                 <p className="text-[11px] font-bold leading-tight opacity-90">
@@ -71,11 +71,11 @@ const InstallBanner: React.FC<InstallBannerProps> = ({ deferredPrompt, onInstall
                     onClick={onInstall}
                     className="w-full bg-yellow-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    Instalar Agora <ArrowBigDown className="w-4 h-4" />
+                    Adicionar Agora <ArrowBigDown className="w-4 h-4" />
                   </button>
                 ) : (
                   <p className="text-[9px] bg-white/5 p-2 rounded-lg italic opacity-60">
-                    Abra as opções do navegador (três pontos) e clique em "Instalar Aplicativo".
+                    Abra as opções do navegador (três pontos) e clique em "Instalar Aplicativo" ou "Adicionar à tela inicial".
                   </p>
                 )}
               </div>

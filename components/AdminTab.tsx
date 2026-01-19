@@ -7,7 +7,7 @@ import {
   ChevronRight, AlertCircle, Copy, Check, MessageCircle,
   PlusCircle, UserPlus
 } from 'lucide-react';
-import { DAYS_OF_WEEK, CATEGORIES } from '../constants';
+import { DAYS_OF_WEEK, ALL_SPECIALTIES, getCategoryFromSpecialty } from '../constants';
 
 interface AdminTabProps {
   professionals: Professional[];
@@ -27,11 +27,11 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     bio: '',
     profileType: 'Profissional',
     category: '',
+    subCategory: '',
     state: 'SP',
     city: 'Torrinha',
     phone: '',
     whatsapp: '',
-    // Placeholder fixo para novos perfis semente
     photoUrl: 'https://img.icons8.com/fluency/200/new-view.png',
     workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '08:00', end: '18:00', closed: false })),
     isClaimable: true,
@@ -59,9 +59,13 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   const handleCreatePro = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProData.companyName && !newProData.proName) return alert('Insira um nome.');
+    if (!newProData.subCategory) return alert('Selecione uma especialidade.');
+
+    const category = getCategoryFromSpecialty(newProData.subCategory);
     
     const pro: Professional = {
       ...newProData,
+      category,
       id: Math.random().toString(36).substr(2, 9),
       userId: 'admin_seed',
       companyName: newProData.companyName?.toUpperCase(),
@@ -76,6 +80,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
       bio: '',
       phone: '',
       whatsapp: '',
+      subCategory: '',
       photoUrl: 'https://img.icons8.com/fluency/200/new-view.png'
     });
   };
@@ -102,7 +107,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
-        <div className="w-full max-w-xs space-y-8 text-center">
+        <div className="w-full max-xs space-y-8 text-center">
           <div className="relative inline-block">
             <div className={`bg-black p-5 rounded-3xl shadow-2xl transition-transform ${error ? 'animate-shake bg-red-600' : 'animate-bounce'}`}>
               <Shield className="w-12 h-12 text-yellow-400" />
@@ -130,9 +135,6 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
               Acessar Painel <ChevronRight className="w-4 h-4" />
             </button>
           </form>
-          <p className="text-[9px] text-black/30 font-bold uppercase italic leading-tight">
-            Se esqueceu sua senha, solicite uma nova via e-mail do suporte.
-          </p>
         </div>
         <style>{`
           @keyframes shake {
@@ -171,7 +173,6 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
       {activeTab === 'create' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
           <h2 className="font-black text-xl uppercase italic">Novo Perfil Semente</h2>
-          <p className="text-xs text-gray-500 italic leading-tight">Crie perfis reais da cidade para gerar engajamento inicial.</p>
           
           <form onSubmit={handleCreatePro} className="bg-white border-4 border-black p-4 rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4">
             <div>
@@ -185,13 +186,15 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase mb-1 block">Descrição Simples</label>
-              <textarea 
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-medium text-xs"
-                value={newProData.bio}
-                onChange={e => setNewProData({...newProData, bio: e.target.value})}
-                placeholder="Ex: Aberto todos os dias até as 22h. Entregas grátis no centro."
-              />
+              <label className="text-[10px] font-black uppercase mb-1 block">Especialidade / Ramo</label>
+              <select 
+                className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-bold text-xs"
+                value={newProData.subCategory}
+                onChange={e => setNewProData({...newProData, subCategory: e.target.value})}
+              >
+                <option value="">Selecione...</option>
+                {ALL_SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -204,15 +207,14 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase mb-1 block">Categoria</label>
-                <select 
+                <label className="text-[10px] font-black uppercase mb-1 block">WhatsApp</label>
+                <input 
+                  type="tel" 
                   className="w-full bg-gray-50 border-2 border-black rounded-xl p-3 font-bold text-xs"
-                  value={newProData.category}
-                  onChange={e => setNewProData({...newProData, category: e.target.value})}
-                >
-                  <option value="">Selecione...</option>
-                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                  value={newProData.whatsapp}
+                  onChange={e => setNewProData({...newProData, whatsapp: e.target.value})}
+                  placeholder="Número com DDD"
+                />
               </div>
             </div>
             <button 
