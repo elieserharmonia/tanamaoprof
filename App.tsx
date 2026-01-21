@@ -48,8 +48,6 @@ const App: React.FC = () => {
     const updatedPros = await db.getProfessionals();
     setProfessionals(updatedPros);
     setLoading(false);
-    // Só volta para Home se for o cadastro do próprio profissional (via ProTab)
-    // Se for o Admin criando (AdminTab), o AdminTab gerencia seu próprio estado de sucesso
     if (activeTab === Tab.PRO) {
       setActiveTab(Tab.HOME);
     }
@@ -153,8 +151,8 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Navigation (OLX Style - Responsive) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black/5 p-2 flex justify-center z-[60]">
+      {/* Navigation (Ajustada para ser idêntica em largura ao Header) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black p-2 md:p-3 flex justify-center z-[60] safe-pb shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-7xl flex justify-around items-end">
           <button 
             onClick={() => setActiveTab(Tab.HOME)}
