@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
-import { Professional, Review, MpConfig, PlanType } from '../types';
+import React, { useState } from 'react';
+import { Professional, PlanType } from '../types';
 import { 
-  Shield, Eye, EyeOff, Award, TrendingUp, Lightbulb, Unlock, 
+  Shield, Eye, EyeOff, Award, TrendingUp, Unlock, 
   ChevronRight, Copy, Check, MessageCircle, Video, Play,
-  PlusCircle, MapPin, DollarSign, Settings, Globe, CreditCard, Save, RefreshCcw, Loader2, Trash2, UserPlus, MessageSquare, X, Key, Sparkles, Download, MonitorPlay
+  PlusCircle, MapPin, DollarSign, Settings, Save, RefreshCcw, Loader2, Trash2, UserPlus, MessageSquare, X, Key, Sparkles, Download, MonitorPlay, Briefcase, Phone, User as UserIcon,
+  Globe
 } from 'lucide-react';
-import { Professional as ProfessionalType } from '../types';
 import { DAYS_OF_WEEK, ALL_SPECIALTIES, getCategoryFromSpecialty, PLAN_PRICES } from '../constants';
 import { db } from '../services/db';
 import { GoogleGenAI } from "@google/genai";
@@ -30,6 +30,32 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   const [promoVideoUrl, setPromoVideoUrl] = useState<string | null>(null);
   const [videoTheme, setVideoTheme] = useState('Modern Business');
 
+  // New Pro State
+  const [newPro, setNewPro] = useState<Partial<Professional>>({
+    profileType: 'Profissional',
+    plan: 'Gratuito',
+    companyName: '',
+    proName: '',
+    bio: '',
+    category: '',
+    subCategory: '',
+    state: 'SP',
+    city: 'Torrinha',
+    street: '',
+    neighborhood: '',
+    phone: '',
+    email: '',
+    whatsapp: '',
+    photoUrl: 'https://img.icons8.com/fluency/200/user-male-circle.png',
+    workingHours: DAYS_OF_WEEK.map(day => ({ day, start: '08:00', end: '18:00', closed: false })),
+    reviews: [],
+    servicesPhotos: [],
+    servicesList: [],
+    views: 0,
+    createdAt: new Date().toISOString(),
+    isClaimable: true
+  });
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const correctPass = await db.getMasterPassword();
@@ -41,7 +67,6 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   };
 
   const handleGeneratePromoVideo = async () => {
-    // Requisito para Veo: Chave de API paga selecionada pelo usuário
     if (!(window as any).aistudio || !(await (window as any).aistudio.hasSelectedApiKey())) {
       alert("Para gerar vídeos com IA, você precisa selecionar uma chave de API de um projeto com faturamento ativo.");
       await (window as any).aistudio.openSelectKey();
@@ -59,7 +84,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
         config: {
           numberOfVideos: 1,
           resolution: '1080p',
-          aspectRatio: '9:16' // Vertical para Reels/TikTok
+          aspectRatio: '9:16'
         }
       });
 
@@ -87,13 +112,38 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     }
   };
 
-  // Funções de CRUD e Configuração...
   const handleUpdateMasterPass = async () => {
     if (!masterPassInput) return;
-    try { await db.updateMasterPassword(masterPassInput); alert('Senha mestre alterada!'); setMasterPassInput(''); } catch (err) { alert('Erro!'); }
+    try { 
+      await db.updateMasterPassword(masterPassInput); 
+      alert('Senha mestre alterada!'); 
+      setMasterPassInput(''); 
+    } catch (err) { 
+      alert('Erro ao alterar senha.'); 
+    }
   };
 
-  const handleCreatePro = async (e: React.FormEvent) => { /* ... lógica de criação ... */ };
+  const handleCreatePro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const proToSave = {
+        ...newPro,
+        id: Math.random().toString(36).substr(2, 9),
+        userId: 'admin_manual',
+        category: getCategoryFromSpecialty(newPro.subCategory || ''),
+        companyName: newPro.companyName?.toUpperCase(),
+      } as Professional;
+      
+      await db.saveProfessional(proToSave);
+      alert('Profissional cadastrado com sucesso!');
+      window.location.reload();
+    } catch (err) {
+      alert('Erro ao cadastrar.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isAdminAuthenticated) {
     return (
@@ -113,14 +163,135 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   }
 
   return (
-    <div className="p-4 pb-20 space-y-6">
-      <div className="flex gap-1 bg-black/5 p-1 rounded-xl overflow-x-auto scrollbar-hide">
-        {['finance', 'moderation', 'create', 'marketing', 'config'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t as any)} className={`flex-1 min-w-[80px] py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === t ? 'bg-black text-yellow-400 shadow-md' : 'text-gray-500'}`}>
-            {t === 'marketing' ? 'Marketing' : t === 'finance' ? 'Parceiros' : t === 'moderation' ? 'Moderar' : t === 'create' ? 'Cadastrar' : 'Config'}
+    <div className="p-4 pb-24 space-y-6">
+      <div className="flex gap-1 bg-black/5 p-1 rounded-xl overflow-x-auto scrollbar-hide sticky top-2 z-50 backdrop-blur-md">
+        {[
+          { id: 'finance', label: 'Parceiros' },
+          { id: 'moderation', label: 'Moderar' },
+          { id: 'create', label: 'Cadastrar' },
+          { id: 'marketing', label: 'Marketing' },
+          { id: 'config', label: 'Config' }
+        ].map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex-1 min-w-[80px] py-2 rounded-lg font-black text-[9px] uppercase transition-all ${activeTab === t.id ? 'bg-black text-yellow-400 shadow-md' : 'text-gray-500'}`}>
+            {t.label}
           </button>
         ))}
       </div>
+
+      {activeTab === 'create' && (
+        <div className="space-y-6 animate-in slide-in-from-right">
+          <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <h3 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><UserPlus className="w-6 h-6" /> Cadastro Manual</h3>
+            <form onSubmit={handleCreatePro} className="space-y-4">
+              <input type="text" placeholder="Nome do Negócio" className="w-full border-2 border-black rounded-xl p-3 font-bold uppercase text-xs" value={newPro.companyName} onChange={e => setNewPro({...newPro, companyName: e.target.value})} required />
+              
+              <select className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.subCategory} onChange={e => setNewPro({...newPro, subCategory: e.target.value})} required>
+                <option value="">Selecione a Especialidade</option>
+                {ALL_SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Cidade" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.city} onChange={e => setNewPro({...newPro, city: e.target.value})} />
+                <input type="text" placeholder="WhatsApp" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.whatsapp} onChange={e => setNewPro({...newPro, whatsapp: e.target.value})} />
+              </div>
+
+              <textarea placeholder="Bio/Descrição" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs min-h-[100px]" value={newPro.bio} onChange={e => setNewPro({...newPro, bio: e.target.value})} />
+
+              <div className="flex items-center gap-2 bg-yellow-400/20 p-3 rounded-xl border border-yellow-400">
+                <input type="checkbox" id="claimable" checked={newPro.isClaimable} onChange={e => setNewPro({...newPro, isClaimable: e.target.checked})} className="w-5 h-5 accent-black" />
+                <label htmlFor="claimable" className="text-[10px] font-black uppercase">Permitir que o dono assuma o perfil</label>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs shadow-xl flex items-center justify-center gap-2">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'CADASTRAR PROFISSIONAL'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'moderation' && (
+        <div className="space-y-4 animate-in slide-in-from-left">
+           <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="text-xl font-black italic uppercase mb-4 flex items-center gap-2"><Settings className="w-6 h-6" /> Gestão de Perfis</h3>
+              <div className="space-y-3">
+                {professionals.map(pro => (
+                  <div key={pro.id} className="border-2 border-black/10 rounded-2xl p-3 flex items-center justify-between gap-3 hover:border-black transition-all">
+                    <div className="flex items-center gap-3 truncate">
+                      <img src={pro.photoUrl} className="w-10 h-10 rounded-full border-2 border-black shrink-0 object-cover" />
+                      <div className="truncate">
+                        <p className="text-[10px] font-black uppercase truncate">{pro.companyName || pro.proName}</p>
+                        <p className="text-[8px] font-bold text-black/40 uppercase">{pro.city} • {pro.plan}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => setShowDeleteConfirm(pro.id)} className="p-2 text-red-500 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4"/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'finance' && (
+        <div className="space-y-4 animate-in fade-in duration-300">
+           <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white border-4 border-black p-4 rounded-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                 <p className="text-[8px] font-black uppercase opacity-40">Parceiros VIP</p>
+                 <p className="text-2xl font-black">{professionals.filter(p => p.plan === 'VIP').length}</p>
+              </div>
+              <div className="bg-yellow-400 border-4 border-black p-4 rounded-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                 <p className="text-[8px] font-black uppercase opacity-60">Parceiros Premium</p>
+                 <p className="text-2xl font-black">{professionals.filter(p => p.plan === 'Premium').length}</p>
+              </div>
+           </div>
+
+           <h3 className="font-black text-xs uppercase italic mt-6 flex items-center gap-2">
+             <DollarSign className="w-4 h-4" /> Lista de Faturamento
+           </h3>
+           <div className="space-y-2">
+             {professionals.filter(p => p.plan !== 'Gratuito').map(pro => (
+                <div key={pro.id} className="bg-white border-2 border-black p-3 rounded-xl flex justify-between items-center group hover:bg-black hover:text-white transition-all">
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase">{pro.companyName || pro.proName}</h4>
+                    <span className={`text-[8px] font-black uppercase ${pro.plan === 'Premium' ? 'text-yellow-600' : 'text-blue-600'}`}>Plano {pro.plan}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black">R$ {pro.plan === 'Premium' ? PLAN_PRICES.ANNUAL_PREMIUM.toFixed(2) : PLAN_PRICES.MONTHLY_VIP.toFixed(2)}</p>
+                    <p className="text-[8px] font-bold opacity-40 uppercase">Até {new Date(pro.subscriptionExpiresAt || '').toLocaleDateString()}</p>
+                  </div>
+                </div>
+             ))}
+             {professionals.filter(p => p.plan !== 'Gratuito').length === 0 && (
+               <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase">Nenhuma assinatura ativa.</div>
+             )}
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'config' && (
+        <div className="space-y-6 animate-in slide-in-from-bottom">
+           <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Key className="w-6 h-6" /> Segurança</h3>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase opacity-40">Nova Senha Mestre</label>
+                    <input type="password" placeholder="••••••••" className="w-full border-2 border-black rounded-xl p-3 font-bold" value={masterPassInput} onChange={e => setMasterPassInput(e.target.value)} />
+                 </div>
+                 <button onClick={handleUpdateMasterPass} className="w-full bg-black text-yellow-400 py-3 rounded-xl font-black text-xs uppercase shadow-md">Atualizar Senha</button>
+              </div>
+           </div>
+
+           <div className="bg-blue-600 text-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="text-lg font-black italic uppercase mb-2 flex items-center gap-2"><Globe className="w-6 h-6" /> Versão do App</h3>
+              <p className="text-xs font-bold opacity-80 mb-4 uppercase">v2.5.0 Stable - Torrinha/SP</p>
+              <button onClick={() => window.location.reload()} className="w-full bg-white text-blue-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2">
+                <RefreshCcw className="w-4 h-4" /> Sincronizar Dados
+              </button>
+           </div>
+        </div>
+      )}
 
       {activeTab === 'marketing' && (
         <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
@@ -181,24 +352,6 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
         </div>
       )}
 
-      {/* Outras abas (finance, moderation, etc) permanecem as mesmas... */}
-      {activeTab === 'finance' && (
-        <div className="space-y-4 animate-in fade-in duration-300">
-           {/* ... conteúdo anterior ... */}
-           <h3 className="font-black text-xs uppercase italic">Parceiros Ativos</h3>
-           {professionals.filter(p => p.plan !== 'Gratuito').map(pro => (
-              <div key={pro.id} className="bg-white border-2 border-black p-3 rounded-xl flex justify-between items-center group">
-                <div>
-                  <h4 className="text-[10px] font-black uppercase">{pro.companyName || pro.proName}</h4>
-                  <span className={`text-[8px] font-black uppercase ${pro.plan === 'Premium' ? 'text-yellow-600' : 'text-blue-600'}`}>Plano {pro.plan}</span>
-                </div>
-                <button onClick={() => setShowDeleteConfirm(pro.id)} className="p-2 text-red-500"><Trash2 className="w-4 h-4"/></button>
-              </div>
-           ))}
-        </div>
-      )}
-
-      {/* Confirmação de exclusão... */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-6 backdrop-blur-sm">
            <div className="bg-white border-4 border-black w-full max-w-xs rounded-3xl p-6 text-center space-y-6">
@@ -206,7 +359,11 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
               <h3 className="font-black uppercase italic">Excluir Perfil?</h3>
               <div className="flex gap-2">
                  <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 bg-gray-100 py-3 rounded-xl font-black uppercase text-xs">Voltar</button>
-                 <button onClick={() => { db.deleteProfessional(showDeleteConfirm); setShowDeleteConfirm(null); window.location.reload(); }} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-black uppercase text-xs">Sim, Excluir</button>
+                 <button onClick={async () => { 
+                   await db.deleteProfessional(showDeleteConfirm); 
+                   setShowDeleteConfirm(null); 
+                   window.location.reload(); 
+                 }} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-black uppercase text-xs">Sim, Excluir</button>
               </div>
            </div>
         </div>

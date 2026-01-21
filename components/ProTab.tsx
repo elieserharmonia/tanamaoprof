@@ -98,6 +98,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     } catch (err) { alert("Erro ao alterar senha."); }
   };
 
+  // geocodeAddress uses Gemini to convert an address into latitude and longitude coordinates
   const geocodeAddress = async (silent = false) => {
     if (!formData.city || !formData.state) return;
     setIsGeocoding(true);
@@ -108,7 +109,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         model: "gemini-3-flash-preview",
         contents: `Retorne latitude e longitude JSON para: ${addressString}`,
         config: {
-          tools: [{googleMaps: {}}],
+          // Note: googleMaps tool is only for Gemini 2.5 and doesn't support responseSchema/JSON output.
+          // Using standard Gemini 3 Flash capability for structured data.
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
