@@ -4,7 +4,8 @@ import {
   Search, MapPin, Heart, Phone, Mail, 
   ArrowUpDown, Briefcase, ShoppingBag, Eye, TrendingUp, Calendar,
   Share2, List, Filter, X, ChevronDown, Zap, Clock, MessageCircle,
-  MessageSquare, User as UserIcon, Loader2, Navigation, Map, RefreshCcw, ShieldCheck
+  MessageSquare, User as UserIcon, Loader2, Navigation, Map, RefreshCcw, ShieldCheck,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Professional, User, Review, UserLocation } from '../types';
 import { PRO_CATEGORIES, COMERCIO_CATEGORIES, SUPPORT_PHONE } from '../constants';
@@ -36,9 +37,6 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'Outros Serviços': '✨'
 };
 
-const RADIUS_OPTIONS = [2, 5, 10, 25, 50, 100];
-const RADIUS_ALL = 999999;
-
 const HomeTab: React.FC<HomeTabProps> = ({ 
   professionals, 
   favorites, 
@@ -50,8 +48,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState('');
-  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'views' | 'recent'>('distance');
-  const [radius, setRadius] = useState<number>(10);
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'views' | 'recent'>('recent');
+  const [showFilters, setShowFilters] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [tempName, setTempName] = useState('');
   
@@ -101,10 +99,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
       const matchesCategory = !activeCategory || pro.category === activeCategory;
       
       let matchesLocation = true;
-      if (userLocation && sortBy === 'distance' && pro.latitude && pro.longitude) {
-        const dist = db.calculateDistance(userLocation.lat, userLocation.lng, pro.latitude, pro.longitude);
-        matchesLocation = radius === RADIUS_ALL ? true : dist <= radius;
-      } else if (selectedCity) {
+      if (selectedCity) {
         matchesLocation = pro.city.toLowerCase() === selectedCity.toLowerCase();
       }
 
@@ -126,7 +121,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
       if (sortBy === 'recent') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       return 0;
     });
-  }, [professionals, searchTerm, activeCategory, selectedCity, sortBy, userLocation, radius]);
+  }, [professionals, searchTerm, activeCategory, selectedCity, sortBy, userLocation]);
 
   const cities = useMemo(() => Array.from(new Set(professionals.map(p => p.city))).sort(), [professionals]);
   const categories = useMemo(() => {
@@ -163,11 +158,65 @@ const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
+      {/* Header com Busca e Novo Botão de Filtros */}
       <div className="bg-yellow-400 p-4 sticky top-0 md:top-[74px] z-40 border-b-2 border-black/10">
-        <div className="relative group max-w-2xl mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
-          <input type="text" placeholder="O que você está procurando?" className="w-full bg-white border-2 border-black rounded-full py-3 pl-12 pr-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <div className="max-w-2xl mx-auto flex gap-2">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
+            <input 
+              type="text" 
+              placeholder="O que você procura?" 
+              className="w-full bg-white border-2 border-black rounded-xl py-3 pl-12 pr-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+          </div>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 rounded-xl border-2 border-black font-black text-[10px] uppercase flex items-center gap-2 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none ${showFilters ? 'bg-black text-yellow-400' : 'bg-black text-yellow-400'}`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Filtros</span>
+          </button>
         </div>
+
+        {/* Painel de Filtros Retrátil */}
+        {showFilters && (
+          <div className="max-w-2xl mx-auto mt-4 p-4 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top duration-300 space-y-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                   <label className="text-[9px] font-black uppercase text-black/40">Ordenar por</label>
+                   <select 
+                      className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 text-xs font-bold outline-none"
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value as any)}
+                   >
+                      <option value="recent">Mais Recentes</option>
+                      {userLocation && <option value="distance">Mais Próximos</option>}
+                      <option value="rating">Melhor Avaliados</option>
+                      <option value="views">Mais Vistos</option>
+                   </select>
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[9px] font-black uppercase text-black/40">Cidade</label>
+                   <select 
+                      className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 text-xs font-bold outline-none"
+                      value={selectedCity}
+                      onChange={e => setSelectedCity(e.target.value)}
+                   >
+                      <option value="">Todas as Cidades</option>
+                      {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                   </select>
+                </div>
+             </div>
+             <button 
+                onClick={() => setShowFilters(false)}
+                className="w-full bg-black text-yellow-400 py-2 rounded-xl font-black text-[10px] uppercase"
+             >
+                Aplicar Filtros
+             </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white py-4 overflow-x-auto scrollbar-hide flex gap-6 px-4 border-b border-black/5 justify-start md:justify-center">
@@ -181,37 +230,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
             <span className={`text-[9px] font-black uppercase text-center leading-tight truncate w-full ${activeCategory === cat ? 'text-black' : 'text-gray-400'}`}>{cat.split(' ')[0]}</span>
           </button>
         ))}
-      </div>
-
-      <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide bg-gray-50/50 border-b border-black/5 justify-start md:justify-center">
-        {userLocation ? (
-          <div className="flex items-center gap-1.5 shrink-0 bg-black text-yellow-400 px-3 py-2 rounded-full border-2 border-black shadow-md transition-transform active:scale-95 group">
-             <Navigation className="w-4 h-4 fill-yellow-400" />
-             <div className="flex items-center gap-1">
-               <span className="text-[10px] font-black uppercase italic tracking-tighter">Raio:</span>
-               <select 
-                 className="bg-transparent text-[10px] font-black uppercase italic outline-none cursor-pointer appearance-none min-w-[30px]" 
-                 value={radius} 
-                 onChange={e => setRadius(Number(e.target.value))}
-               >
-                 {RADIUS_OPTIONS.map(r => <option key={r} value={r} className="text-black font-bold"> {r}KM</option>)}
-                 <option value={RADIUS_ALL} className="text-black font-bold">TODOS</option>
-               </select>
-               <ChevronDown className="w-4 h-4 text-yellow-400" />
-             </div>
-          </div>
-        ) : (
-          <select className="bg-white border-2 border-black/10 rounded-full px-4 py-2 text-[10px] font-bold outline-none shrink-0" value={selectedCity} onChange={e => setSelectedCity(e.target.value)}>
-            <option value="">Brasil (Tudo)</option>
-            {cities.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        )}
-        <select className="bg-white border-2 border-black/10 rounded-full px-4 py-2 text-[10px] font-bold outline-none shrink-0" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
-          {userLocation && <option value="distance">Mais Próximos</option>}
-          <option value="recent">Mais Recentes</option>
-          <option value="rating">Melhor Avaliados</option>
-          <option value="views">Mais Vistos</option>
-        </select>
       </div>
 
       <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
