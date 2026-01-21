@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TáNaMão - Profissionais e Serviços</title>
     <meta name="theme-color" content="#FACC15">
     
@@ -40,6 +40,7 @@
           font-family: 'Inter', sans-serif; 
           -webkit-tap-highlight-color: transparent;
           user-select: none;
+          background-color: #FACC15;
         }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -49,6 +50,9 @@
           to { opacity: 1; transform: scale(1); }
         }
         .animate-card { animation: fadeInScale 0.3s ease-out forwards; }
+
+        /* Safe Area Padding para iPhones novos */
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 <script type="importmap">
 {
@@ -62,7 +66,7 @@
 }
 </script>
 </head>
-<body class="bg-yellow-400 text-black overflow-x-hidden">
+<body class="text-black overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>

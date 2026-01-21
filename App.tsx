@@ -48,7 +48,11 @@ const App: React.FC = () => {
     const updatedPros = await db.getProfessionals();
     setProfessionals(updatedPros);
     setLoading(false);
-    setActiveTab(Tab.HOME);
+    // Só volta para Home se for o cadastro do próprio profissional (via ProTab)
+    // Se for o Admin criando (AdminTab), o AdminTab gerencia seu próprio estado de sucesso
+    if (activeTab === Tab.PRO) {
+      setActiveTab(Tab.HOME);
+    }
   };
 
   const toggleFavorite = async (id: string) => {
@@ -93,22 +97,22 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto bg-white shadow-2xl relative">
+    <div className="min-h-screen flex flex-col w-full bg-white shadow-2xl relative">
       <InstallBanner 
         deferredPrompt={deferredPrompt} 
         onInstall={handleInstallClick} 
       />
       
-      <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 flex flex-col gap-2 shadow-sm">
-        <div className="flex justify-between items-center gap-3">
+      <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 w-full">
           <button 
             onClick={() => setActiveTab(Tab.HOME)}
             className="bg-black px-4 py-2 rounded-lg shrink-0 transition-transform active:scale-95 hover:scale-105 cursor-pointer"
           >
-            <h1 className="text-2xl font-black tracking-tighter italic text-yellow-400">TáNaMão</h1>
+            <h1 className="text-xl md:text-2xl font-black tracking-tighter italic text-yellow-400">TáNaMão</h1>
           </button>
           <div className="flex flex-col items-end flex-1">
-            <p className="text-[10px] font-black uppercase text-black italic leading-none mb-1 tracking-tighter">
+            <p className="text-[8px] md:text-[10px] font-black uppercase text-black italic leading-none mb-1 tracking-tighter">
               A MAIOR VITRINE DA REGIÃO
             </p>
             {currentUser && (
@@ -123,7 +127,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-24 scroll-smooth">
+      <main className="flex-1 w-full max-w-7xl mx-auto pb-24 scroll-smooth">
         {activeTab === Tab.HOME && (
           <HomeTab 
             professionals={professionals} 
@@ -149,33 +153,35 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Navigation (OLX Style) */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-2 border-black/5 p-2 flex justify-around items-end shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-[60]">
-        <button 
-          onClick={() => setActiveTab(Tab.HOME)}
-          className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.HOME ? 'text-black' : 'text-gray-400'}`}
-        >
-          <Home className={`w-5 h-5 ${activeTab === Tab.HOME ? 'fill-yellow-400' : ''}`} />
-          <span className="text-[8px] font-black uppercase mt-1">Explorar</span>
-        </button>
+      {/* Navigation (OLX Style - Responsive) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black/5 p-2 flex justify-center z-[60]">
+        <div className="w-full max-w-7xl flex justify-around items-end">
+          <button 
+            onClick={() => setActiveTab(Tab.HOME)}
+            className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.HOME ? 'text-black' : 'text-gray-400'}`}
+          >
+            <Home className={`w-5 h-5 md:w-6 md:h-6 ${activeTab === Tab.HOME ? 'fill-yellow-400' : ''}`} />
+            <span className="text-[8px] md:text-[10px] font-black uppercase mt-1">Explorar</span>
+          </button>
 
-        <button 
-          onClick={() => setActiveTab(Tab.PRO)}
-          className="flex-1 flex flex-col items-center group"
-        >
-          <div className={`-mt-10 mb-2 w-14 h-14 rounded-full border-4 border-white flex items-center justify-center shadow-xl transition-all active:scale-90 ${activeTab === Tab.PRO ? 'bg-black text-yellow-400' : 'bg-yellow-400 text-black'}`}>
-             <PlusCircle className="w-8 h-8" />
-          </div>
-          <span className="text-[8px] font-black uppercase mb-1">Anunciar</span>
-        </button>
+          <button 
+            onClick={() => setActiveTab(Tab.PRO)}
+            className="flex-1 flex flex-col items-center group"
+          >
+            <div className={`-mt-10 mb-2 w-14 h-14 md:w-16 md:h-16 rounded-full border-4 border-white flex items-center justify-center shadow-xl transition-all active:scale-90 ${activeTab === Tab.PRO ? 'bg-black text-yellow-400' : 'bg-yellow-400 text-black'}`}>
+               <PlusCircle className="w-8 h-8 md:w-10 md:h-10" />
+            </div>
+            <span className="text-[8px] md:text-[10px] font-black uppercase mb-1">Anunciar</span>
+          </button>
 
-        <button 
-          onClick={() => setActiveTab(Tab.ADMIN)}
-          className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.ADMIN ? 'text-black' : 'text-gray-400'}`}
-        >
-          <ShieldCheck className={`w-5 h-5 ${activeTab === Tab.ADMIN ? 'fill-yellow-400' : ''}`} />
-          <span className="text-[8px] font-black uppercase mt-1">Config</span>
-        </button>
+          <button 
+            onClick={() => setActiveTab(Tab.ADMIN)}
+            className={`flex-1 flex flex-col items-center p-2 transition-all ${activeTab === Tab.ADMIN ? 'text-black' : 'text-gray-400'}`}
+          >
+            <ShieldCheck className={`w-5 h-5 md:w-6 md:h-6 ${activeTab === Tab.ADMIN ? 'fill-yellow-400' : ''}`} />
+            <span className="text-[8px] md:text-[10px] font-black uppercase mt-1">Config</span>
+          </button>
+        </div>
       </nav>
 
       {loading && (

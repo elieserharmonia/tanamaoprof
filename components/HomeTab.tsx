@@ -32,7 +32,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'Saúde e Bem-estar': '🏥',
   'Casa e Construção': '🏗️',
   'Moda e Beleza': '👗',
-  'Serviços em Geral': '🛠️',
+  'Serviços em Geral': '🛠️',
   'Outros Serviços': '✨'
 };
 
@@ -163,14 +163,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      <div className="bg-yellow-400 p-4 sticky top-0 z-40 border-b-2 border-black/10">
-        <div className="relative group">
+      <div className="bg-yellow-400 p-4 sticky top-0 md:top-[74px] z-40 border-b-2 border-black/10">
+        <div className="relative group max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
           <input type="text" placeholder="O que você está procurando?" className="w-full bg-white border-2 border-black rounded-full py-3 pl-12 pr-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      <div className="bg-white py-4 overflow-x-auto scrollbar-hide flex gap-6 px-4 border-b border-black/5">
+      <div className="bg-white py-4 overflow-x-auto scrollbar-hide flex gap-6 px-4 border-b border-black/5 justify-start md:justify-center">
         <button onClick={() => setActiveCategory(null)} className="flex flex-col items-center gap-2 shrink-0 min-w-[70px]">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border-2 transition-all ${!activeCategory ? 'bg-yellow-400 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' : 'bg-gray-50 border-black/5'}`}>🎯</div>
           <span className={`text-[9px] font-black uppercase text-center ${!activeCategory ? 'text-black' : 'text-gray-400'}`}>Tudo</span>
@@ -183,7 +183,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
         ))}
       </div>
 
-      <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide bg-gray-50/50 border-b border-black/5">
+      <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide bg-gray-50/50 border-b border-black/5 justify-start md:justify-center">
         {userLocation ? (
           <div className="flex items-center gap-1.5 shrink-0 bg-black text-yellow-400 px-3 py-2 rounded-full border-2 border-black shadow-md transition-transform active:scale-95 group">
              <Navigation className="w-4 h-4 fill-yellow-400" />
@@ -214,11 +214,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
         </select>
       </div>
 
-      <div className="p-3 grid grid-cols-2 gap-3">
+      <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
         {filteredPros.length > 0 ? filteredPros.map(pro => (
           <ProGridCard key={pro.id} pro={pro} isFavorite={favorites.includes(pro.id)} toggleFavorite={toggleFavorite} updateProfessional={updateProfessional} currentUser={currentUser} userLocation={userLocation} onPromptLogin={() => setShowLoginModal(true)} />
         )) : (
-          <div className="col-span-2 py-20 text-center space-y-4 opacity-30">
+          <div className="col-span-full py-20 text-center space-y-4 opacity-30">
              <Search className="w-12 h-12 mx-auto" />
              <p className="font-black uppercase text-xs">Nenhum profissional encontrado</p>
           </div>
@@ -277,7 +277,7 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
 
   return (
     <>
-      <div onClick={() => { db.incrementViews(pro.id); setShowFull(true); }} className={`bg-white rounded-xl border-2 border-black/5 overflow-hidden shadow-sm active:scale-95 transition-all flex flex-col relative ${pro.plan === 'Premium' ? 'border-yellow-400 ring-2 ring-yellow-400/20' : ''}`}>
+      <div onClick={() => { db.incrementViews(pro.id); setShowFull(true); }} className={`bg-white rounded-xl border-2 border-black/5 overflow-hidden shadow-sm active:scale-95 hover:border-black/20 transition-all flex flex-col relative ${pro.plan === 'Premium' ? 'border-yellow-400 ring-2 ring-yellow-400/20 shadow-md' : 'shadow-sm'}`}>
         {pro.plan !== 'Gratuito' && (
           <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-black px-1.5 py-0.5 rounded text-[7px] font-black uppercase border border-black shadow-md flex items-center gap-0.5 animate-pulse"><Zap className="w-2 h-2 fill-black" /> Destaque</div>
         )}
@@ -303,18 +303,20 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
       {showFull && (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in slide-in-from-bottom duration-300">
            <div className="p-4 flex items-center gap-4 border-b">
-              <button onClick={() => setShowFull(false)} className="p-2 -ml-2"><X className="w-6 h-6"/></button>
-              <h2 className="text-xs font-black uppercase flex-1 truncate">{pro.companyName || pro.proName}</h2>
-              <button onClick={() => toggleFavorite(pro.id)} className="p-2"><Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}/></button>
+              <div className="max-w-4xl mx-auto w-full flex items-center">
+                <button onClick={() => setShowFull(false)} className="p-2 -ml-2"><X className="w-6 h-6"/></button>
+                <h2 className="text-xs md:text-sm font-black uppercase flex-1 truncate">{pro.companyName || pro.proName}</h2>
+                <button onClick={() => toggleFavorite(pro.id)} className="p-2"><Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}/></button>
+              </div>
            </div>
 
            <div className="flex-1 overflow-y-auto bg-gray-50/30 pb-24">
               <div className="bg-white flex flex-col items-center py-10 border-b border-black/5 relative">
                  <div className="relative">
-                    <img src={pro.photoUrl} className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl bg-white" />
+                    <img src={pro.photoUrl} className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover border-4 border-white shadow-xl bg-white" />
                  </div>
                  <div className="mt-4 flex flex-col items-center gap-1">
-                    <h1 className="text-xl font-black uppercase text-center px-4">{pro.companyName || pro.proName}</h1>
+                    <h1 className="text-xl md:text-2xl font-black uppercase text-center px-4">{pro.companyName || pro.proName}</h1>
                     <div className="flex items-center gap-2">
                        <span className="bg-yellow-400 px-2 py-0.5 rounded text-[8px] font-black uppercase border border-black">{pro.subCategory}</span>
                        {distance && <span className="bg-black text-yellow-400 px-2 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1"><Navigation className="w-2.5 h-2.5 fill-yellow-400"/> {distance}</span>}
@@ -322,7 +324,7 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
                  </div>
               </div>
 
-              <div className="p-6 space-y-8 max-w-lg mx-auto">
+              <div className="p-6 space-y-8 max-w-2xl mx-auto">
                  {pro.isClaimable && (
                     <div className="bg-blue-600 text-white p-4 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center gap-3">
                        <ShieldCheck className="w-8 h-8"/>
@@ -373,9 +375,11 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
               </div>
            </div>
 
-           <div className="p-4 border-t bg-white flex gap-3 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] sticky bottom-0">
-              <a href={`tel:${pro.phone}`} className="flex-1 flex flex-col items-center justify-center gap-1 bg-white border-2 border-black rounded-xl py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Phone className="w-4 h-4"/><span className="text-[8px] font-black uppercase">Ligar</span></a>
-              <a href={`https://wa.me/55${pro.whatsapp.replace(/\D/g, '')}?text=${whatsappMessage}`} target="_blank" className="flex-[2] flex items-center justify-center gap-2 bg-black text-yellow-400 rounded-xl font-black text-xs uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all"><MessageCircle className="w-5 h-5"/> WhatsApp</a>
+           <div className="p-4 border-t bg-white flex justify-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] sticky bottom-0">
+              <div className="max-w-2xl w-full flex gap-3">
+                <a href={`tel:${pro.phone}`} className="flex-1 flex flex-col items-center justify-center gap-1 bg-white border-2 border-black rounded-xl py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Phone className="w-4 h-4"/><span className="text-[8px] font-black uppercase">Ligar</span></a>
+                <a href={`https://wa.me/55${pro.whatsapp.replace(/\D/g, '')}?text=${whatsappMessage}`} target="_blank" className="flex-[2] flex items-center justify-center gap-2 bg-black text-yellow-400 rounded-xl font-black text-xs uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all"><MessageCircle className="w-5 h-5"/> WhatsApp</a>
+              </div>
            </div>
         </div>
       )}

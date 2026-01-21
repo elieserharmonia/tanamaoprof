@@ -5,7 +5,7 @@ import {
   Shield, Eye, EyeOff, Award, TrendingUp, Unlock, 
   ChevronRight, Copy, Check, MessageCircle, Video, Play,
   PlusCircle, MapPin, DollarSign, Settings, Save, RefreshCcw, Loader2, Trash2, UserPlus, MessageSquare, X, Key, Sparkles, Download, MonitorPlay, Briefcase, Phone, User as UserIcon,
-  Globe
+  Globe, Smartphone, Store, Apple, Play as PlayIcon, Layout, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { DAYS_OF_WEEK, ALL_SPECIALTIES, getCategoryFromSpecialty, PLAN_PRICES } from '../constants';
 import { db } from '../services/db';
@@ -20,18 +20,18 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPass, setAdminPass] = useState('');
   const [showAdminPass, setShowAdminPass] = useState(false);
-  const [activeTab, setActiveTab] = useState<'finance' | 'moderation' | 'create' | 'marketing' | 'config'>('finance');
+  const [activeTab, setActiveTab] = useState<'finance' | 'moderation' | 'create' | 'marketing' | 'publish' | 'config'>('finance');
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [masterPassInput, setMasterPassInput] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Marketing States
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [promoVideoUrl, setPromoVideoUrl] = useState<string | null>(null);
   const [videoTheme, setVideoTheme] = useState('Modern Business');
 
-  // New Pro State
-  const [newPro, setNewPro] = useState<Partial<Professional>>({
+  const INITIAL_NEW_PRO: Partial<Professional> = {
     profileType: 'Profissional',
     plan: 'Gratuito',
     companyName: '',
@@ -54,7 +54,9 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
     views: 0,
     createdAt: new Date().toISOString(),
     isClaimable: true
-  });
+  };
+
+  const [newPro, setNewPro] = useState<Partial<Professional>>(INITIAL_NEW_PRO);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,13 +135,19 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
         userId: 'admin_manual',
         category: getCategoryFromSpecialty(newPro.subCategory || ''),
         companyName: newPro.companyName?.toUpperCase(),
+        createdAt: new Date().toISOString(),
       } as Professional;
       
       await db.saveProfessional(proToSave);
-      alert('Profissional cadastrado com sucesso!');
-      window.location.reload();
+      setSuccessMessage('Perfil criado com sucesso!');
+      setNewPro({
+        ...INITIAL_NEW_PRO,
+        city: newPro.city,
+        state: newPro.state
+      });
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      alert('Erro ao cadastrar.');
+      alert('Erro ao cadastrar: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -170,42 +178,111 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
           { id: 'moderation', label: 'Moderar' },
           { id: 'create', label: 'Cadastrar' },
           { id: 'marketing', label: 'Marketing' },
+          { id: 'publish', label: 'Lojas' },
           { id: 'config', label: 'Config' }
         ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex-1 min-w-[80px] py-2 rounded-lg font-black text-[9px] uppercase transition-all ${activeTab === t.id ? 'bg-black text-yellow-400 shadow-md' : 'text-gray-500'}`}>
+          <button key={t.id} onClick={() => { setActiveTab(t.id as any); setSuccessMessage(null); }} className={`flex-1 min-w-[80px] py-2 rounded-lg font-black text-[9px] uppercase transition-all ${activeTab === t.id ? 'bg-black text-yellow-400 shadow-md' : 'text-gray-500'}`}>
             {t.label}
           </button>
         ))}
       </div>
 
       {activeTab === 'create' && (
-        <div className="space-y-6 animate-in slide-in-from-right">
+        <div className="space-y-6 animate-in slide-in-from-right relative">
+          {successMessage && (
+            <div className="bg-green-500 text-white p-4 rounded-2xl border-2 border-black font-black uppercase text-xs text-center animate-in zoom-in duration-300 shadow-lg mb-4 flex items-center justify-center gap-2">
+              <Check className="w-5 h-5" /> {successMessage}
+            </div>
+          )}
+
           <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <h3 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><UserPlus className="w-6 h-6" /> Cadastro Manual</h3>
             <form onSubmit={handleCreatePro} className="space-y-4">
               <input type="text" placeholder="Nome do Negócio" className="w-full border-2 border-black rounded-xl p-3 font-bold uppercase text-xs" value={newPro.companyName} onChange={e => setNewPro({...newPro, companyName: e.target.value})} required />
-              
               <select className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.subCategory} onChange={e => setNewPro({...newPro, subCategory: e.target.value})} required>
                 <option value="">Selecione a Especialidade</option>
                 {ALL_SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-
               <div className="grid grid-cols-2 gap-2">
                 <input type="text" placeholder="Cidade" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.city} onChange={e => setNewPro({...newPro, city: e.target.value})} />
                 <input type="text" placeholder="WhatsApp" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs" value={newPro.whatsapp} onChange={e => setNewPro({...newPro, whatsapp: e.target.value})} />
               </div>
-
               <textarea placeholder="Bio/Descrição" className="w-full border-2 border-black rounded-xl p-3 font-bold text-xs min-h-[100px]" value={newPro.bio} onChange={e => setNewPro({...newPro, bio: e.target.value})} />
-
               <div className="flex items-center gap-2 bg-yellow-400/20 p-3 rounded-xl border border-yellow-400">
                 <input type="checkbox" id="claimable" checked={newPro.isClaimable} onChange={e => setNewPro({...newPro, isClaimable: e.target.checked})} className="w-5 h-5 accent-black" />
                 <label htmlFor="claimable" className="text-[10px] font-black uppercase">Permitir que o dono assuma o perfil</label>
               </div>
-
-              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs shadow-xl flex items-center justify-center gap-2">
+              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'CADASTRAR PROFISSIONAL'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'publish' && (
+        <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+          <div className="bg-black text-white p-6 rounded-[32px] border-4 border-yellow-400 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h3 className="text-xl font-black italic uppercase flex items-center gap-2 mb-2">
+              <Smartphone className="w-6 h-6 text-yellow-400" /> Publicar nas Lojas
+            </h3>
+            <p className="text-[10px] font-bold opacity-60 uppercase mb-6 leading-tight">
+              Transforme seu PWA em um aplicativo nativo para Google Play e App Store.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <PlayIcon className="w-5 h-5 fill-current" />
+                  <span className="font-black uppercase text-xs">Google Play</span>
+                </div>
+                <p className="text-[9px] font-medium opacity-70">Use **TWA (Trusted Web Activity)** ou **Capacitor**. É o processo mais simples.</p>
+                <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-2 py-1 rounded text-[8px] font-black uppercase">
+                  <CheckCircle2 className="w-3 h-3" /> Requisito: Conta Developer ($25)
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Apple className="w-5 h-5 fill-current" />
+                  <span className="font-black uppercase text-xs">App Store</span>
+                </div>
+                <p className="text-[9px] font-medium opacity-70">Use **Capacitor**. Requer um Mac para compilar o código final para iOS.</p>
+                <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-[8px] font-black uppercase">
+                  <AlertTriangle className="w-3 h-3" /> Requisito: Conta Developer ($99/ano)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
+            <h4 className="text-sm font-black uppercase italic border-b-2 border-black pb-2">Checklist Técnico</h4>
+            
+            <div className="space-y-4">
+              {[
+                { label: 'Web Manifest (manifest.json)', status: 'OK', desc: 'Configura o ícone e cores do app.' },
+                { label: 'Service Worker (sw.js)', status: 'OK', desc: 'Permite funcionamento offline e cache.' },
+                { label: 'Meta Tags Mobile', status: 'OK', desc: 'Ajuste de viewport e barra de status.' },
+                { label: 'Ícones (192px/512px)', status: 'OK', desc: 'Necessários para a tela inicial do celular.' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="bg-green-100 p-1 rounded-full"><CheckCircle2 className="w-4 h-4 text-green-600" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase leading-none">{item.label}</p>
+                    <p className="text-[9px] font-bold opacity-40 uppercase mt-1">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 space-y-3">
+              <h5 className="text-[10px] font-black uppercase text-black/40">Próximo Passo Recomendado:</h5>
+              <div className="bg-gray-100 p-4 rounded-2xl border-2 border-black/5">
+                <p className="text-xs font-bold leading-relaxed">
+                  Para gerar os arquivos das lojas, recomendo usar o site <span className="text-blue-600 underline">PWABuilder.com</span>. Basta colar a URL do seu site lá e ele gera os pacotes prontos para Google e Apple.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -215,7 +292,7 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
            <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="text-xl font-black italic uppercase mb-4 flex items-center gap-2"><Settings className="w-6 h-6" /> Gestão de Perfis</h3>
               <div className="space-y-3">
-                {professionals.map(pro => (
+                {professionals.length > 0 ? professionals.map(pro => (
                   <div key={pro.id} className="border-2 border-black/10 rounded-2xl p-3 flex items-center justify-between gap-3 hover:border-black transition-all">
                     <div className="flex items-center gap-3 truncate">
                       <img src={pro.photoUrl} className="w-10 h-10 rounded-full border-2 border-black shrink-0 object-cover" />
@@ -228,7 +305,9 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
                       <button onClick={() => setShowDeleteConfirm(pro.id)} className="p-2 text-red-500 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4"/></button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center py-6 text-xs font-bold opacity-30 uppercase italic">Nenhum profissional na base.</p>
+                )}
               </div>
            </div>
         </div>
