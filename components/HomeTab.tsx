@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, MapPin, Heart, Phone, Mail, 
   ArrowUpDown, Briefcase, ShoppingBag, Eye, TrendingUp, Calendar,
-  Share2, List, Filter, X, ChevronRight, Zap, Clock, MessageCircle,
+  Share2, List, Filter, X, ChevronDown, Zap, Clock, MessageCircle,
   MessageSquare, User as UserIcon, Loader2, Navigation, Map, RefreshCcw, ShieldCheck
 } from 'lucide-react';
 import { Professional, User, Review, UserLocation } from '../types';
@@ -37,6 +37,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const RADIUS_OPTIONS = [2, 5, 10, 25, 50, 100];
+const RADIUS_ALL = 999999;
 
 const HomeTab: React.FC<HomeTabProps> = ({ 
   professionals, 
@@ -90,9 +91,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   const filteredPros = useMemo(() => {
     return professionals.filter(pro => {
-      // REGRA: Mostrar apenas parceiros pagantes (VIP ou Premium)
-      if (pro.plan === 'Gratuito' && !pro.isClaimable) return false;
-
       const search = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
                             (pro.companyName || '').toLowerCase().includes(search) || 
@@ -105,7 +103,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
       let matchesLocation = true;
       if (userLocation && sortBy === 'distance' && pro.latitude && pro.longitude) {
         const dist = db.calculateDistance(userLocation.lat, userLocation.lng, pro.latitude, pro.longitude);
-        matchesLocation = dist <= radius;
+        matchesLocation = radius === RADIUS_ALL ? true : dist <= radius;
       } else if (selectedCity) {
         matchesLocation = pro.city.toLowerCase() === selectedCity.toLowerCase();
       }
@@ -114,6 +112,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
     }).sort((a, b) => {
       const weightA = a.plan === 'Premium' ? 3 : a.plan === 'VIP' ? 2 : 1;
       const weightB = b.plan === 'Premium' ? 3 : b.plan === 'VIP' ? 2 : 1;
+      
       if (weightA !== weightB) return weightB - weightA;
 
       if (sortBy === 'distance' && userLocation && a.latitude && a.longitude && b.latitude && b.longitude) {
@@ -149,14 +148,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
       {locPermissionState === 'asking' && (
         <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
           <div className="bg-white border-4 border-black w-full max-w-sm rounded-[40px] p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-center space-y-6">
-             <div className="bg-yellow-400 w-20 h-20 rounded-full border-4 border-black flex items-center justify-center mx-auto shadow-lg animate-bounce"><Navigation className="w-10 h-10" /></div>
+             <div className="bg-yellow-400 w-20 h-20 rounded-full border-4 border-black flex items-center justify-center mx-auto shadow-lg animate-bounce"><Navigation className="w-10 h-10 fill-black" /></div>
              <div className="space-y-2">
                 <h2 className="text-2xl font-black uppercase italic tracking-tight">Perto de você?</h2>
                 <p className="text-xs font-bold text-black/60 leading-relaxed uppercase">Encontre os melhores profissionais na sua rua ou bairro usando sua localização.</p>
              </div>
              <div className="space-y-3">
                 <button onClick={handleRequestLocation} disabled={isGettingLocation} className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                  {isGettingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Navigation className="w-4 h-4" /> Ativar Localização</>}
+                  {isGettingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Navigation className="w-4 h-4 fill-yellow-400" /> Ativar Localização</>}
                 </button>
                 <button onClick={() => setLocPermissionState('denied')} className="w-full text-[10px] font-black uppercase text-black/40 py-2">Escolher cidade manualmente</button>
              </div>
@@ -186,19 +185,28 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
       <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide bg-gray-50/50 border-b border-black/5">
         {userLocation ? (
-          <div className="flex items-center gap-2 shrink-0 bg-black text-yellow-400 px-4 py-1.5 rounded-full border border-black shadow-sm">
-             <Navigation className="w-3 h-3 fill-yellow-400" />
-             <select className="bg-transparent text-[10px] font-black uppercase outline-none" value={radius} onChange={e => setRadius(Number(e.target.value))}>
-               {RADIUS_OPTIONS.map(r => <option key={r} value={r} className="text-black">Raio: {r}km</option>)}
-             </select>
+          <div className="flex items-center gap-1.5 shrink-0 bg-black text-yellow-400 px-3 py-2 rounded-full border-2 border-black shadow-md transition-transform active:scale-95 group">
+             <Navigation className="w-4 h-4 fill-yellow-400" />
+             <div className="flex items-center gap-1">
+               <span className="text-[10px] font-black uppercase italic tracking-tighter">Raio:</span>
+               <select 
+                 className="bg-transparent text-[10px] font-black uppercase italic outline-none cursor-pointer appearance-none min-w-[30px]" 
+                 value={radius} 
+                 onChange={e => setRadius(Number(e.target.value))}
+               >
+                 {RADIUS_OPTIONS.map(r => <option key={r} value={r} className="text-black font-bold"> {r}KM</option>)}
+                 <option value={RADIUS_ALL} className="text-black font-bold">TODOS</option>
+               </select>
+               <ChevronDown className="w-4 h-4 text-yellow-400" />
+             </div>
           </div>
         ) : (
-          <select className="bg-white border-2 border-black/10 rounded-full px-4 py-1.5 text-[10px] font-bold outline-none shrink-0" value={selectedCity} onChange={e => setSelectedCity(e.target.value)}>
+          <select className="bg-white border-2 border-black/10 rounded-full px-4 py-2 text-[10px] font-bold outline-none shrink-0" value={selectedCity} onChange={e => setSelectedCity(e.target.value)}>
             <option value="">Brasil (Tudo)</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
-        <select className="bg-white border-2 border-black/10 rounded-full px-4 py-1.5 text-[10px] font-bold outline-none shrink-0" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
+        <select className="bg-white border-2 border-black/10 rounded-full px-4 py-2 text-[10px] font-bold outline-none shrink-0" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
           {userLocation && <option value="distance">Mais Próximos</option>}
           <option value="recent">Mais Recentes</option>
           <option value="rating">Melhor Avaliados</option>
@@ -207,9 +215,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
       </div>
 
       <div className="p-3 grid grid-cols-2 gap-3">
-        {filteredPros.map(pro => (
+        {filteredPros.length > 0 ? filteredPros.map(pro => (
           <ProGridCard key={pro.id} pro={pro} isFavorite={favorites.includes(pro.id)} toggleFavorite={toggleFavorite} updateProfessional={updateProfessional} currentUser={currentUser} userLocation={userLocation} onPromptLogin={() => setShowLoginModal(true)} />
-        ))}
+        )) : (
+          <div className="col-span-2 py-20 text-center space-y-4 opacity-30">
+             <Search className="w-12 h-12 mx-auto" />
+             <p className="font-black uppercase text-xs">Nenhum profissional encontrado</p>
+          </div>
+        )}
       </div>
 
       {showLoginModal && (
@@ -260,18 +273,20 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
      window.open(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const whatsappMessage = encodeURIComponent("Olá, te encontrei no aplicativo TáNaMão.\n\nhttps://tanamaoprofissionais.vercel.app/");
+
   return (
     <>
-      <div onClick={() => { db.incrementViews(pro.id); setShowFull(true); }} className={`bg-white rounded-xl border-2 border-black/5 overflow-hidden shadow-sm active:scale-95 transition-all flex flex-col relative ${pro.plan === 'Premium' ? 'border-yellow-400' : ''}`}>
+      <div onClick={() => { db.incrementViews(pro.id); setShowFull(true); }} className={`bg-white rounded-xl border-2 border-black/5 overflow-hidden shadow-sm active:scale-95 transition-all flex flex-col relative ${pro.plan === 'Premium' ? 'border-yellow-400 ring-2 ring-yellow-400/20' : ''}`}>
         {pro.plan !== 'Gratuito' && (
-          <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-black px-1.5 py-0.5 rounded text-[7px] font-black uppercase border border-black shadow-sm flex items-center gap-0.5"><Zap className="w-2 h-2 fill-black" /> Destaque</div>
+          <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-black px-1.5 py-0.5 rounded text-[7px] font-black uppercase border border-black shadow-md flex items-center gap-0.5 animate-pulse"><Zap className="w-2 h-2 fill-black" /> Destaque</div>
         )}
         <div className="relative aspect-square bg-gray-100 overflow-hidden">
           <img src={pro.photoUrl || 'https://img.icons8.com/fluency/200/user-male-circle.png'} className="w-full h-full object-cover" alt={pro.proName} />
           <button onClick={(e) => { e.stopPropagation(); toggleFavorite(pro.id); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-black/5">
             <Heart className={`w-3 h-3 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
-          {distance && <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-yellow-400 px-2 py-0.5 rounded text-[7px] font-black uppercase flex items-center gap-0.5 shadow-md"><Navigation className="w-2 h-2 fill-yellow-400" /> {distance}</div>}
+          {distance && <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm text-yellow-400 px-2 py-0.5 rounded text-[7px] font-black uppercase flex items-center gap-0.5 shadow-md border border-white/10"><Navigation className="w-2 h-2 fill-yellow-400" /> {distance}</div>}
         </div>
         <div className="p-2 flex-1 flex flex-col justify-between gap-1">
           <div>
@@ -360,7 +375,7 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
 
            <div className="p-4 border-t bg-white flex gap-3 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] sticky bottom-0">
               <a href={`tel:${pro.phone}`} className="flex-1 flex flex-col items-center justify-center gap-1 bg-white border-2 border-black rounded-xl py-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Phone className="w-4 h-4"/><span className="text-[8px] font-black uppercase">Ligar</span></a>
-              <a href={`https://wa.me/55${pro.whatsapp.replace(/\D/g, '')}`} target="_blank" className="flex-[2] flex items-center justify-center gap-2 bg-black text-yellow-400 rounded-xl font-black text-xs uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all"><MessageCircle className="w-5 h-5"/> WhatsApp</a>
+              <a href={`https://wa.me/55${pro.whatsapp.replace(/\D/g, '')}?text=${whatsappMessage}`} target="_blank" className="flex-[2] flex items-center justify-center gap-2 bg-black text-yellow-400 rounded-xl font-black text-xs uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all"><MessageCircle className="w-5 h-5"/> WhatsApp</a>
            </div>
         </div>
       )}
@@ -368,7 +383,6 @@ const ProGridCard: React.FC<{ pro: Professional; isFavorite: boolean; toggleFavo
   );
 };
 
-// Fixed Star component type to allow standard React props like 'key' when mapping in lists
 const Star: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
 );

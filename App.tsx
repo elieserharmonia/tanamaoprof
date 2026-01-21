@@ -101,9 +101,12 @@ const App: React.FC = () => {
       
       <header className="bg-yellow-400 border-b-2 border-black p-4 sticky top-0 z-50 flex flex-col gap-2 shadow-sm">
         <div className="flex justify-between items-center gap-3">
-          <div className="bg-black px-4 py-2 rounded-lg shrink-0">
+          <button 
+            onClick={() => setActiveTab(Tab.HOME)}
+            className="bg-black px-4 py-2 rounded-lg shrink-0 transition-transform active:scale-95 hover:scale-105 cursor-pointer"
+          >
             <h1 className="text-2xl font-black tracking-tighter italic text-yellow-400">TáNaMão</h1>
-          </div>
+          </button>
           <div className="flex flex-col items-end flex-1">
             <p className="text-[10px] font-black uppercase text-black italic leading-none mb-1 tracking-tighter">
               A MAIOR VITRINE DA REGIÃO
