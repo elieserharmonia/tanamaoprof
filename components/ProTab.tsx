@@ -43,7 +43,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     state: 'SP',
     city: 'Torrinha',
     street: '',
-    number: '',
     neighborhood: '',
     phone: '',
     email: '',
@@ -103,7 +102,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     if (!formData.city || !formData.state) return;
     setIsGeocoding(true);
     try {
-      const addressString = `${formData.street || ''} ${formData.number || ''}, ${formData.neighborhood || ''}, ${formData.city}, ${formData.state}, Brasil`;
+      const addressString = `${formData.street || ''}, ${formData.neighborhood || ''}, ${formData.city}, ${formData.state}, Brasil`;
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -131,7 +130,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     e.preventDefault();
     if (!currentUser) return;
     
-    // Geocodificação silenciosa no salvamento
     if (!formData.latitude || !formData.longitude) {
       await geocodeAddress(true);
     }
@@ -226,10 +224,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                   <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
                   <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
                </div>
-               <div className="grid grid-cols-[3fr_1fr] gap-2">
-                  <input type="text" placeholder="Rua / Avenida" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
-                  <input type="text" placeholder="Nº" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.number} onChange={e => setFormData({...formData, number: e.target.value})} />
-               </div>
+               <input type="text" placeholder="Endereço (Rua, Avenida, Número)" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
                <input type="text" placeholder="Bairro" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
                <p className="text-[8px] font-bold text-black/30 uppercase italic">Seu perfil aparecerá no mapa "Perto de mim".</p>
             </div>

@@ -22,6 +22,9 @@ export const PRO_CATEGORIES = {
   'Profissionais Liberais': [
     'Advogado', 'Engenheiro', 'Arquiteto', 'Contador', 'Veterinário', 'Nutricionista', 'Psicólogo'
   ],
+  'Educação e Aulas': [
+    'Professor', 'Professor de idiomas', 'Professor (reforço)', 'Professor de música', 'Personal Trainer'
+  ],
   'Veículos e Transporte': [
     'Mecânico', 'Elétrica Automotiva', 'Funileiro', 'Guincho / Reboque', 'Lavador de carro', 'Borracheiro'
   ],
@@ -52,6 +55,9 @@ export const COMERCIO_CATEGORIES = {
   ],
   'Moda e Beleza': [
     'Salão de beleza', 'Barbearia', 'Loja de roupas', 'Loja de calçados', 'Perfumaria'
+  ],
+  'Imobiliária e Locação': [
+    'Locação de imóveis', 'Locação'
   ],
   'Serviços em Geral': [
     'Oficina mecânica', 'Lava-jato', 'Gráfica', 'Papelaria'
@@ -89,8 +95,7 @@ export const INITIAL_PROS: any[] = [
     bio: 'Especialista em reformas e construção civil há mais de 15 anos.',
     category: 'Construção e Reformas',
     subCategory: 'Pedreiro',
-    street: 'Rua das Flores',
-    number: '123',
+    street: 'Rua das Flores, 123',
     neighborhood: 'Centro',
     state: 'SP',
     city: 'Torrinha',
@@ -110,59 +115,5 @@ export const INITIAL_PROS: any[] = [
     servicesList: [{ name: 'Reforma Completa', price: 'Sob consulta' }],
     views: 150,
     createdAt: '2023-01-01'
-  },
-  {
-    id: '2',
-    profileType: 'Comercio',
-    plan: 'VIP',
-    companyName: 'PADARIA DO CENTRO',
-    proName: 'Carlos Padeiro',
-    bio: 'O melhor pão francês da região de Brotas.',
-    category: 'Alimentação',
-    subCategory: 'Padaria',
-    street: 'Avenida Principal',
-    number: '450',
-    neighborhood: 'Bairro Alto',
-    state: 'SP',
-    city: 'Brotas',
-    phone: '1436531111',
-    email: 'padaria@contato.com',
-    whatsapp: '1436531111',
-    experienceYears: 10,
-    isVip: false,
-    isHighlighted: false,
-    isEmergency24h: false,
-    photoUrl: 'https://img.icons8.com/fluency/200/shop.png',
-    workingHours: DAYS_OF_WEEK.map(d => ({ day: d, start: '06:00', end: '20:00', closed: false })),
-    reviews: [],
-    servicesPhotos: [],
-    servicesList: [{ name: 'Pão Francês', price: 'R$ 1,00/un' }],
-    views: 85,
-    createdAt: '2023-02-15'
-  },
-  {
-    id: '3',
-    profileType: 'Profissional',
-    plan: 'Gratuito',
-    proName: 'Maria Pinturas',
-    bio: 'Pinturas residenciais e comerciais com rapidez.',
-    category: 'Construção e Reformas',
-    subCategory: 'Pintor',
-    state: 'SP',
-    city: 'Torrinha',
-    phone: '14999990000',
-    email: 'maria@pintor.com',
-    whatsapp: '14999990000',
-    experienceYears: 5,
-    isVip: false,
-    isHighlighted: false,
-    isEmergency24h: false,
-    photoUrl: 'https://img.icons8.com/fluency/200/painter.png',
-    workingHours: [],
-    reviews: [],
-    servicesPhotos: [],
-    servicesList: [],
-    views: 12,
-    createdAt: '2024-01-10'
   }
 ];
