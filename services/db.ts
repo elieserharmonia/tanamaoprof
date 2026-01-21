@@ -31,6 +31,21 @@ export const db = {
     return { id: data.id, email: data.email, name: data.name };
   },
 
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
+    const { error } = await supabase.from('users').update({ password: newPassword }).eq('id', userId);
+    if (error) throw error;
+  },
+
+  // --- ADMIN CONFIG ---
+  async getMasterPassword(): Promise<string> {
+    const { data } = await supabase.from('app_config').select('data').eq('key', 'master_password').single();
+    return data?.data?.password || 'admin';
+  },
+
+  async updateMasterPassword(newPassword: string): Promise<void> {
+    await supabase.from('app_config').upsert({ key: 'master_password', data: { password: newPassword } });
+  },
+
   // --- CONFIG METHODS ---
   async getMpConfig(): Promise<MpConfig> {
     const { data } = await supabase.from('app_config').select('data').eq('key', 'mp_config').single();
@@ -48,7 +63,6 @@ export const db = {
       if (error || !data || data.length === 0) return INITIAL_PROS;
       
       const pros = data.map(item => item.data as Professional);
-      
       const now = new Date();
       return pros.map(p => {
         if (p.plan !== 'Gratuito' && p.subscriptionExpiresAt && new Date(p.subscriptionExpiresAt) < now) {
@@ -71,6 +85,11 @@ export const db = {
     if (error) throw error;
   },
 
+  async deleteProfessional(proId: string): Promise<void> {
+    const { error } = await supabase.from('professionals').delete().eq('id', proId);
+    if (error) throw error;
+  },
+
   async activatePlan(userId: string, plan: PlanType): Promise<void> {
     const pro = await this.getProfessionalByUserId(userId);
     if (!pro) return;
@@ -83,28 +102,21 @@ export const db = {
       ...pro,
       plan,
       subscriptionExpiresAt: expiresAt.toISOString(),
-      isVip: plan === 'VIP' || plan === 'Premium',
+      isVip: true, 
       isHighlighted: plan === 'Premium'
     };
 
     await this.saveProfessional(updatedPro);
   },
 
-  async recordPayment(payment: PaymentRecord): Promise<void> {
-     await supabase.from('payments').insert([payment]);
-  },
-
   // --- GEOLOCATION HELPERS ---
   calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Radius of the earth in km
+    const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in km
+    return R * c; 
   },
 
   saveLastLocation(loc: UserLocation): void {
@@ -116,7 +128,6 @@ export const db = {
     return saved ? JSON.parse(saved) : null;
   },
 
-  // --- LOCAL STORAGE ---
   async getFavorites(): Promise<string[]> {
     const saved = localStorage.getItem(FAVS_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -146,6 +157,10 @@ export const db = {
     const pro = pros[index];
     pro.reviews.push(review);
     await this.saveProfessional(pro);
+    
+    // Simulação de e-mail ao proprietário
+    console.log(`[NOTIFICAÇÃO E-MAIL] Para: ${pro.email} | Assunto: Você recebeu uma avaliação! | Conteúdo: ${review.userName} avaliou com nota ${review.rating}: "${review.comment}"`);
+
     return pro;
   },
 
@@ -156,5 +171,9 @@ export const db = {
       pro.views = (pro.views || 0) + 1;
       await this.saveProfessional(pro);
     }
+  },
+
+  async recordPayment(payment: PaymentRecord): Promise<void> {
+     await supabase.from('payments').insert([payment]);
   }
 };
