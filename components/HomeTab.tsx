@@ -24,6 +24,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'Construção e Reformas': '🏠',
   'Serviços Domésticos': '🧹',
   'Beleza e Estética': '💄',
+  'Transporte e Entregas': '🚚',
   'Profissionais Liberais': '⚖️',
   'Veículos e Transporte': '🚗',
   'Jardim e Área Externa': '🌿',

@@ -5,7 +5,7 @@ import { Professional, User, ServiceItem, PaymentRecord, PlanType } from '../typ
 import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES, ALL_SPECIALTIES, SUPPORT_PHONE } from '../constants';
 import { db } from '../services/db';
 import { paymentService } from '../services/payment';
-import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key } from 'lucide-react';
+import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key, FileText } from 'lucide-react';
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
@@ -149,7 +149,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         <div className="bg-black p-4 rounded-2xl mb-6 shadow-2xl animate-bounce"><Lock className="w-10 h-10 text-yellow-400" /></div>
         <h2 className="text-2xl font-black uppercase mb-8 italic text-center">Área do Parceiro</h2>
         <form onSubmit={handleAuth} className="w-full space-y-4" autoComplete="off">
-          {/* Inputs ocultos para enganar o preenchimento automático de alguns navegadores */}
           <input type="text" style={{display:'none'}} />
           <input type="password" style={{display:'none'}} />
           
@@ -249,6 +248,17 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                </div>
             </div>
 
+            <div className="space-y-1">
+               <label className="text-[10px] font-black uppercase text-black/40 flex items-center gap-1"><FileText className="w-3 h-3"/> Biografia / Descrição dos Serviços</label>
+               <textarea 
+                 placeholder="Conte um pouco sobre sua experiência, serviços que oferece e diferenciais..." 
+                 className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none min-h-[120px] resize-none" 
+                 value={formData.bio} 
+                 onChange={e => setFormData({...formData, bio: e.target.value})} 
+               />
+               <p className="text-[8px] font-bold text-black/30 uppercase italic">Dica: Uma boa descrição atrai mais clientes!</p>
+            </div>
+
             <div className="bg-white border-2 border-black rounded-3xl p-4 space-y-4 shadow-sm">
                <h4 className="text-[10px] font-black uppercase text-black/40">Endereço do Local</h4>
                <div className="grid grid-cols-2 gap-2">
@@ -257,7 +267,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                </div>
                <input type="text" placeholder="Endereço (Rua, Avenida, Número)" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
                <input type="text" placeholder="Bairro" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
-               <p className="text-[8px] font-bold text-black/30 uppercase italic">Seu perfil aparecerá no mapa "Perto de mim".</p>
             </div>
             
             <div className="grid grid-cols-2 gap-2">

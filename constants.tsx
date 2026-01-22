@@ -19,6 +19,9 @@ export const PRO_CATEGORIES = {
   'Beleza e Estética': [
     'Manicure', 'Pedicure', 'Cabeleireiro(a)', 'Barbeiro', 'Maquiadora', 'Esteticista', 'Depiladora'
   ],
+  'Transporte e Entregas': [
+    'Motorista', 'Motorista Particular', 'Entregador', 'Moto-Boy', 'Táxi', 'Uber'
+  ],
   'Profissionais Liberais': [
     'Advogado', 'Engenheiro', 'Arquiteto', 'Contador', 'Veterinário', 'Nutricionista', 'Psicólogo'
   ],
