@@ -98,7 +98,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     } catch (err) { alert("Erro ao alterar senha."); }
   };
 
-  // geocodeAddress uses Gemini to convert an address into latitude and longitude coordinates
   const geocodeAddress = async (silent = false) => {
     if (!formData.city || !formData.state) return;
     setIsGeocoding(true);
@@ -109,8 +108,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         model: "gemini-3-flash-preview",
         contents: `Retorne latitude e longitude JSON para: ${addressString}`,
         config: {
-          // Note: googleMaps tool is only for Gemini 2.5 and doesn't support responseSchema/JSON output.
-          // Using standard Gemini 3 Flash capability for structured data.
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -151,14 +148,46 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
         <div className="bg-black p-4 rounded-2xl mb-6 shadow-2xl animate-bounce"><Lock className="w-10 h-10 text-yellow-400" /></div>
         <h2 className="text-2xl font-black uppercase mb-8 italic text-center">Área do Parceiro</h2>
-        <form onSubmit={handleAuth} className="w-full space-y-4">
+        <form onSubmit={handleAuth} className="w-full space-y-4" autoComplete="off">
+          {/* Inputs ocultos para enganar o preenchimento automático de alguns navegadores */}
+          <input type="text" style={{display:'none'}} />
+          <input type="password" style={{display:'none'}} />
+          
           {authMode === 'register' && (
-            <input type="text" placeholder="Nome Completo" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" value={authData.name} onChange={e => setAuthData({...authData, name: e.target.value})} required />
+            <input 
+              type="text" 
+              name="partner_full_name"
+              placeholder="Nome Completo" 
+              className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
+              value={authData.name} 
+              onChange={e => setAuthData({...authData, name: e.target.value})} 
+              required 
+            />
           )}
-          <input type="email" placeholder="E-mail" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} required />
+          <input 
+            type="email" 
+            name="partner_email"
+            autoComplete="new-email"
+            placeholder="E-mail" 
+            className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
+            value={authData.email} 
+            onChange={e => setAuthData({...authData, email: e.target.value})} 
+            required 
+          />
           <div className="relative">
-            <input type={showPassword ? "text" : "password"} placeholder="Senha" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} required />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
+            <input 
+              type={showPassword ? "text" : "password"} 
+              name="partner_password"
+              autoComplete="new-password"
+              placeholder="Senha" 
+              className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12" 
+              value={authData.password} 
+              onChange={e => setAuthData({...authData, password: e.target.value})} 
+              required 
+            />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
           <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR' : 'CADASTRAR'}

@@ -26,7 +26,6 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
   const [masterPassInput, setMasterPassInput] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Marketing States
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [promoVideoUrl, setPromoVideoUrl] = useState<string | null>(null);
   const [videoTheme, setVideoTheme] = useState('Modern Business');
@@ -159,10 +158,20 @@ const AdminTab: React.FC<AdminTabProps> = ({ professionals, updateProfessional }
         <div className="bg-black p-5 rounded-3xl shadow-2xl animate-bounce mb-8">
           <Shield className="w-12 h-12 text-yellow-400" />
         </div>
-        <form onSubmit={handleAdminLogin} className="w-full max-w-xs space-y-4">
+        <form onSubmit={handleAdminLogin} className="w-full max-w-xs space-y-4" autoComplete="off">
           <div className="relative">
-             <input type={showAdminPass ? "text" : "password"} placeholder="SENHA MESTRE" className="w-full border-4 border-black rounded-2xl py-4 text-center font-black outline-none" value={adminPass} onChange={e => setAdminPass(e.target.value)} />
-             <button type="button" onClick={() => setShowAdminPass(!showAdminPass)} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30">{showAdminPass ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}</button>
+             <input 
+               type={showAdminPass ? "text" : "password"} 
+               name="master_admin_password"
+               autoComplete="new-password"
+               placeholder="SENHA MESTRE" 
+               className="w-full border-4 border-black rounded-2xl py-4 text-center font-black outline-none" 
+               value={adminPass} 
+               onChange={e => setAdminPass(e.target.value)} 
+             />
+             <button type="button" onClick={() => setShowAdminPass(!showAdminPass)} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30">
+               {showAdminPass ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}
+             </button>
           </div>
           <button type="submit" className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl">Acessar Painel</button>
         </form>
