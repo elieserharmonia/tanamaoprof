@@ -26,8 +26,14 @@ export const db = {
   },
 
   async signIn(email: string, password: string): Promise<User> {
-    const { data, error } = await supabase.from('users').select('*').eq('email', email).eq('password', password).single();
+    const { data, error } = await supabase.from('users').select('*').eq('email', email.toLowerCase()).eq('password', password).single();
     if (error || !data) throw new Error('E-mail ou senha incorretos.');
+    return { id: data.id, email: data.email, name: data.name };
+  },
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const { data, error } = await supabase.from('users').select('*').eq('email', email.toLowerCase()).single();
+    if (error || !data) return null;
     return { id: data.id, email: data.email, name: data.name };
   },
 

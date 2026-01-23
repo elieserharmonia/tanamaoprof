@@ -5,7 +5,7 @@ import { Professional, User, ServiceItem, PaymentRecord, PlanType } from '../typ
 import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES, ALL_SPECIALTIES, SUPPORT_PHONE } from '../constants';
 import { db } from '../services/db';
 import { paymentService } from '../services/payment';
-import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key, FileText } from 'lucide-react';
+import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key, FileText, ChevronLeft } from 'lucide-react';
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
@@ -13,10 +13,11 @@ interface ProTabProps {
   onLogin: (user: User) => void;
 }
 
+type AuthMode = 'login' | 'register' | 'recovery' | 'reset';
 type CheckoutStep = 'selection' | 'pix_display' | 'waiting' | 'success' | 'expired';
 
 const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'recovery'>('login');
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authData, setAuthData] = useState({ email: '', password: '', name: '' });
@@ -24,13 +25,9 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [activeView, setActiveView] = useState<'profile' | 'plans'>('profile');
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [newPass, setNewPass] = useState('');
+  const [targetResetUser, setTargetResetUser] = useState<User | null>(null);
   
   const [isGeocoding, setIsGeocoding] = useState(false);
-
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('selection');
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>('Gratuito');
-  const [activePayment, setActivePayment] = useState<PaymentRecord | null>(null);
-  const pollInterval = useRef<any>(null);
 
   const [formData, setFormData] = useState<Partial<Professional>>({
     profileType: 'Profissional',
@@ -71,7 +68,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       }
     };
     checkExistingProfile();
-    return () => clearInterval(pollInterval.current);
   }, [currentUser]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -86,6 +82,41 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         onLogin(user);
       }
     } catch (err: any) { alert(err.message); } finally { setLoading(false); }
+  };
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const user = await db.getUserByEmail(authData.email);
+      if (!user) throw new Error("E-mail não encontrado na nossa base.");
+      
+      // Simulando envio de e-mail de recuperação
+      setTargetResetUser(user);
+      setAuthMode('reset');
+      alert(`Enviamos instruções de recuperação para ${authData.email}. (Para fins de teste, você foi redirecionado para a tela de nova senha)`);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetResetUser || !newPass) return;
+    setLoading(true);
+    try {
+      await db.updatePassword(targetResetUser.id, newPass);
+      alert("Senha redefinida com sucesso! Agora você pode entrar.");
+      setAuthMode('login');
+      setNewPass('');
+      setTargetResetUser(null);
+    } catch (err: any) {
+      alert("Erro ao redefinir: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdatePassword = async () => {
@@ -146,53 +177,113 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   if (!currentUser || currentUser.id === 'temp') {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-black p-4 rounded-2xl mb-6 shadow-2xl animate-bounce"><Lock className="w-10 h-10 text-yellow-400" /></div>
-        <h2 className="text-2xl font-black uppercase mb-8 italic text-center">Área do Parceiro</h2>
-        <form onSubmit={handleAuth} className="w-full space-y-4" autoComplete="off">
-          <input type="text" style={{display:'none'}} />
-          <input type="password" style={{display:'none'}} />
-          
-          {authMode === 'register' && (
+        <div className="bg-black p-4 rounded-2xl mb-6 shadow-2xl animate-bounce">
+          {authMode === 'recovery' || authMode === 'reset' ? <Mail className="w-10 h-10 text-yellow-400" /> : <Lock className="w-10 h-10 text-yellow-400" />}
+        </div>
+        
+        <h2 className="text-2xl font-black uppercase mb-8 italic text-center">
+          {authMode === 'login' && 'Área do Parceiro'}
+          {authMode === 'register' && 'Novo Cadastro'}
+          {authMode === 'recovery' && 'Recuperar Senha'}
+          {authMode === 'reset' && 'Nova Senha'}
+        </h2>
+
+        {authMode === 'recovery' ? (
+          <form onSubmit={handleRecovery} className="w-full space-y-4">
+             <p className="text-[10px] font-bold text-center uppercase opacity-60 leading-tight mb-4">
+               Digite seu e-mail cadastrado. Enviaremos um link para você redefinir sua senha com segurança.
+             </p>
+             <input 
+               type="email" 
+               placeholder="Seu E-mail cadastrado" 
+               className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
+               value={authData.email} 
+               onChange={e => setAuthData({...authData, email: e.target.value})} 
+               required 
+             />
+             <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2">
+               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR INSTRUÇÕES'}
+             </button>
+             <button type="button" onClick={() => setAuthMode('login')} className="w-full text-[10px] font-black uppercase opacity-40 py-2 flex items-center justify-center gap-1">
+               <ChevronLeft className="w-3 h-3"/> Voltar para Login
+             </button>
+          </form>
+        ) : authMode === 'reset' ? (
+          <form onSubmit={handleResetPassword} className="w-full space-y-4">
+             <div className="relative">
+               <input 
+                 type={showPassword ? "text" : "password"} 
+                 placeholder="Digite sua nova senha" 
+                 className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12" 
+                 value={newPass} 
+                 onChange={e => setNewPass(e.target.value)} 
+                 required 
+               />
+               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">
+                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+               </button>
+             </div>
+             <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg">
+               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'REDEFINIR SENHA'}
+             </button>
+          </form>
+        ) : (
+          <form onSubmit={handleAuth} className="w-full space-y-4" autoComplete="off">
+            <input type="text" style={{display:'none'}} />
+            <input type="password" style={{display:'none'}} />
+            
+            {authMode === 'register' && (
+              <input 
+                type="text" 
+                name="partner_full_name"
+                placeholder="Nome Completo" 
+                className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
+                value={authData.name} 
+                onChange={e => setAuthData({...authData, name: e.target.value})} 
+                required 
+              />
+            )}
             <input 
-              type="text" 
-              name="partner_full_name"
-              placeholder="Nome Completo" 
+              type="email" 
+              name="partner_email"
+              autoComplete="new-email"
+              placeholder="E-mail" 
               className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
-              value={authData.name} 
-              onChange={e => setAuthData({...authData, name: e.target.value})} 
+              value={authData.email} 
+              onChange={e => setAuthData({...authData, email: e.target.value})} 
               required 
             />
-          )}
-          <input 
-            type="email" 
-            name="partner_email"
-            autoComplete="new-email"
-            placeholder="E-mail" 
-            className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none" 
-            value={authData.email} 
-            onChange={e => setAuthData({...authData, email: e.target.value})} 
-            required 
-          />
-          <div className="relative">
-            <input 
-              type={showPassword ? "text" : "password"} 
-              name="partner_password"
-              autoComplete="new-password"
-              placeholder="Senha" 
-              className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12" 
-              value={authData.password} 
-              onChange={e => setAuthData({...authData, password: e.target.value})} 
-              required 
-            />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                name="partner_password"
+                autoComplete="new-password"
+                placeholder="Senha" 
+                className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12" 
+                value={authData.password} 
+                onChange={e => setAuthData({...authData, password: e.target.value})} 
+                required 
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            
+            {authMode === 'login' && (
+              <div className="text-right">
+                <button type="button" onClick={() => setAuthMode('recovery')} className="text-[9px] font-black uppercase text-black/40 hover:text-black transition-colors">Esqueci minha senha</button>
+              </div>
+            )}
+
+            <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR' : 'CADASTRAR'}
             </button>
-          </div>
-          <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR' : 'CADASTRAR'}
-          </button>
-        </form>
-        <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="mt-6 text-[10px] font-black uppercase underline opacity-40">{authMode === 'login' ? 'Criar conta' : 'Já tenho conta'}</button>
+          </form>
+        )}
+
+        {authMode !== 'recovery' && authMode !== 'reset' && (
+          <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="mt-6 text-[10px] font-black uppercase underline opacity-40">{authMode === 'login' ? 'Criar conta' : 'Já tenho conta'}</button>
+        )}
       </div>
     );
   }

@@ -67,22 +67,28 @@ export const COMERCIO_CATEGORIES = {
   ]
 };
 
-export const ALL_SPECIALTIES = [
-  ...Object.values(PRO_CATEGORIES).flat(),
-  ...Object.values(COMERCIO_CATEGORIES).flat()
-].sort();
+export const UTILIDADE_PUBLICA_CATEGORIES = {
+  'Utilidade Pública': [
+    'Posto de Saúde (ESF)', 'PAM (Pronto Atendimento)', 'Ambulância / Emergência', 
+    'Farmácia Municipal', 'Prefeitura', 'Câmara Municipal', 'CRAS / Assistência Social',
+    'Conselho Tutelar', 'Polícia Militar', 'Delegacia de Polícia', 'Bombeiros',
+    'Fórum', 'Correios', 'Cartório', 'SAAET / Água e Esgoto'
+  ]
+};
+
+// Merge de todas as categorias para facilitar o uso global
+const ALL_GROUPS = { ...PRO_CATEGORIES, ...COMERCIO_CATEGORIES, ...UTILIDADE_PUBLICA_CATEGORIES };
+
+export const ALL_SPECIALTIES = Object.values(ALL_GROUPS).flat().sort();
 
 export const getCategoryFromSpecialty = (specialty: string): string => {
-  for (const [cat, list] of Object.entries({...PRO_CATEGORIES, ...COMERCIO_CATEGORIES})) {
+  for (const [cat, list] of Object.entries(ALL_GROUPS)) {
     if (list.includes(specialty)) return cat;
   }
   return 'Outros';
 };
 
-export const CATEGORIES = [
-  ...Object.keys(PRO_CATEGORIES).map(cat => ({ id: cat, label: cat })),
-  ...Object.keys(COMERCIO_CATEGORIES).map(cat => ({ id: cat, label: cat }))
-];
+export const CATEGORIES = Object.keys(ALL_GROUPS).map(cat => ({ id: cat, label: cat }));
 
 export const DAYS_OF_WEEK = [
   'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'

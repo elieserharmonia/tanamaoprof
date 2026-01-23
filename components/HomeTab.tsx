@@ -8,7 +8,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { Professional, User, Review, UserLocation } from '../types';
-import { PRO_CATEGORIES, COMERCIO_CATEGORIES, SUPPORT_PHONE } from '../constants';
+import { PRO_CATEGORIES, COMERCIO_CATEGORIES, UTILIDADE_PUBLICA_CATEGORIES, SUPPORT_PHONE } from '../constants';
 import { db } from '../services/db';
 
 interface HomeTabProps {
@@ -35,7 +35,37 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'Casa e Construção': '🏗️',
   'Moda e Beleza': '👗',
   'Serviços em Geral': '🛠️',
+  'Utilidade Pública': '🏛️',
   'Outros Serviços': '✨'
+};
+
+// Auxiliar para remover acentos e normalizar texto
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+};
+
+// Algoritmo de Levenshtein para medir distância entre palavras (typo tolerance)
+const levenshteinDistance = (a: string, b: string): number => {
+  const matrix = Array.from({ length: a.length + 1 }, () => 
+    Array.from({ length: b.length + 1 }, (_, j) => j)
+  );
+  for (let i = 1; i <= a.length; i++) matrix[i][0] = i;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[a.length][b.length];
 };
 
 const HomeTab: React.FC<HomeTabProps> = ({ 
@@ -90,21 +120,46 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   const filteredPros = useMemo(() => {
     return professionals.filter(pro => {
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm || 
-                            (pro.companyName || '').toLowerCase().includes(search) || 
-                            (pro.proName || '').toLowerCase().includes(search) ||
-                            (pro.bio || '').toLowerCase().includes(search) ||
-                            (pro.subCategory || '').toLowerCase().includes(search);
-
+      // Filtro de Categoria
       const matchesCategory = !activeCategory || pro.category === activeCategory;
+      if (!matchesCategory) return false;
       
-      let matchesLocation = true;
-      if (selectedCity) {
-        matchesLocation = pro.city.toLowerCase() === selectedCity.toLowerCase();
-      }
+      // Filtro de Cidade
+      if (selectedCity && pro.city.toLowerCase() !== selectedCity.toLowerCase()) return false;
 
-      return matchesSearch && matchesCategory && matchesLocation;
+      // Lógica de Busca Inteligente (Acentos e Erros)
+      if (!searchTerm) return true;
+
+      const searchNorm = normalizeText(searchTerm);
+      const searchWords = searchNorm.split(/\s+/).filter(w => w.length >= 2);
+      
+      // Texto alvo para busca direta (Inclusão)
+      const targetFull = normalizeText(
+        `${pro.companyName || ''} ${pro.proName || ''} ${pro.subCategory || ''} ${pro.bio || ''}`
+      );
+
+      // 1. Verificação de Inclusão Direta (mais rápida)
+      if (targetFull.includes(searchNorm)) return true;
+
+      // 2. Verificação palavra por palavra com tolerância a erro
+      // Criamos um set de palavras chave do profissional para comparar individualmente
+      const proKeywords = normalizeText(
+        `${pro.companyName || ''} ${pro.proName || ''} ${pro.subCategory || ''}`
+      ).split(/\s+/).filter(w => w.length >= 2);
+
+      return searchWords.every(sWord => {
+        // Se a palavra pesquisada está contida no texto completo
+        if (targetFull.includes(sWord)) return true;
+
+        // Senão, tenta fuzzy match contra as palavras-chave (typo tolerance)
+        return proKeywords.some(pWord => {
+          const maxDistance = sWord.length > 6 ? 2 : 1;
+          // Se a palavra for muito curta (2-3 letras), não permitimos erro
+          if (sWord.length <= 3) return pWord === sWord;
+          return levenshteinDistance(sWord, pWord) <= maxDistance;
+        });
+      });
+
     }).sort((a, b) => {
       const weightA = a.plan === 'Premium' ? 3 : a.plan === 'VIP' ? 2 : 1;
       const weightB = b.plan === 'Premium' ? 3 : b.plan === 'VIP' ? 2 : 1;
@@ -126,7 +181,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   const cities = useMemo(() => Array.from(new Set(professionals.map(p => p.city))).sort(), [professionals]);
   const categories = useMemo(() => {
-    const all = [...Object.keys(PRO_CATEGORIES), ...Object.keys(COMERCIO_CATEGORIES)];
+    const all = [
+      ...Object.keys(PRO_CATEGORIES), 
+      ...Object.keys(COMERCIO_CATEGORIES),
+      ...Object.keys(UTILIDADE_PUBLICA_CATEGORIES)
+    ];
     return Array.from(new Set(all)).sort();
   }, []);
 
@@ -159,7 +218,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* Header com Busca e Novo Botão de Filtros */}
       <div className="bg-yellow-400 p-4 sticky top-0 md:top-[74px] z-40 border-b-2 border-black/10">
         <div className="max-w-2xl mx-auto flex gap-2">
           <div className="relative flex-1 group">
@@ -181,7 +239,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
           </button>
         </div>
 
-        {/* Painel de Filtros Retrátil */}
         {showFilters && (
           <div className="max-w-2xl mx-auto mt-4 p-4 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top duration-300 space-y-4">
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
