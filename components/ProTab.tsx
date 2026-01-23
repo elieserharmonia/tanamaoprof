@@ -11,11 +11,12 @@ interface ProTabProps {
   onSave: (pro: Professional) => void;
   currentUser: User | null;
   onLogin: (user: User) => void;
+  onSimulateEmail?: (title: string, message: string) => void;
 }
 
 type AuthMode = 'login' | 'register' | 'recovery' | 'verify' | 'reset';
 
-const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
+const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulateEmail }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,8 +30,17 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [targetResetUser, setTargetResetUser] = useState<User | null>(null);
   const [generatedOtp, setGeneratedOtp] = useState<string>('');
   const [userOtpInput, setUserOtpInput] = useState<string>('');
+  const [resendTimer, setResendTimer] = useState(0);
   
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => setResendTimer(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const [formData, setFormData] = useState<Partial<Professional>>({
     profileType: 'Profissional',
@@ -94,15 +104,24 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       const user = await db.getUserByEmail(authData.email);
       if (!user) throw new Error("Este e-mail não está cadastrado em nossa base.");
       
-      // Gerar código de 6 dígitos
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       setGeneratedOtp(otp);
       setTargetResetUser(user);
       
-      // Simulação de envio de e-mail (Log de console para desenvolvedor ver)
-      console.log(`%c [SISTEMA DE E-MAIL] Código para ${authData.email}: ${otp}`, "color: yellow; background: black; font-weight: bold; padding: 4px;");
+      // Inteligência Artificial gerando o corpo do e-mail simulado
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const emailContent = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Escreva uma mensagem de e-mail curta e profissional para recuperação de senha. O nome do app é TáNaMão. O código de segurança é ${otp}. Responda apenas com o texto do corpo do e-mail em português, use negrito no código.`
+      });
+
+      const message = emailContent.text || `Olá! Seu código de segurança para redefinir a senha no TáNaMão é: <b>${otp}</b>. Use este código para validar sua identidade.`;
+
+      if (onSimulateEmail) {
+        onSimulateEmail(`Recuperação de Senha - ${user.name}`, message);
+      }
       
-      alert(`Código de segurança enviado para ${authData.email}. Verifique sua caixa de entrada.`);
+      setResendTimer(60);
       setAuthMode('verify');
     } catch (err: any) {
       alert(err.message);
@@ -116,7 +135,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     if (userOtpInput === generatedOtp) {
       setAuthMode('reset');
     } else {
-      alert("Código incorreto. Verifique o código enviado ao seu e-mail.");
+      alert("Código incorreto. Verifique o e-mail que acabamos de enviar para você.");
     }
   };
 
@@ -205,31 +224,31 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           {authMode === 'login' && 'Acesso do Parceiro'}
           {authMode === 'register' && 'Cadastrar Meu Negócio'}
           {authMode === 'recovery' && 'Recuperar Acesso'}
-          {authMode === 'verify' && 'Verificar Identidade'}
+          {authMode === 'verify' && 'Confirmar E-mail'}
           {authMode === 'reset' && 'Criar Nova Senha'}
         </h2>
 
         {authMode === 'recovery' && (
           <form onSubmit={handleRecoveryRequest} className="w-full space-y-4">
-             <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-2xl flex items-start gap-3 mb-2">
+             <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-2xl flex items-start gap-3 mb-2 shadow-sm">
                 <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
                 <p className="text-[10px] font-bold text-blue-900 uppercase leading-tight">
-                  Enviaremos um código de segurança de 6 dígitos para o seu e-mail para confirmar que você é o dono da conta.
+                  Enviaremos agora um código de segurança real (simulado via notificação) para o seu e-mail. Digite o endereço cadastrado abaixo.
                 </p>
              </div>
              <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-black/40 px-1">Seu E-mail Cadastrado</label>
                 <input 
                   type="email" 
-                  placeholder="email@exemplo.com" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
+                  placeholder="Ex: joao@email.com" 
+                  className="w-full bg-white border-2 border-black rounded-xl py-4 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-y-0.5 active:shadow-none" 
                   value={authData.email} 
                   onChange={e => setAuthData({...authData, email: e.target.value})} 
                   required 
                 />
              </div>
              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2 active:translate-y-1 transition-all">
-               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR CÓDIGO POR E-MAIL'}
+               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR CÓDIGO DE SEGURANÇA'}
              </button>
              <button type="button" onClick={() => setAuthMode('login')} className="w-full text-[10px] font-black uppercase opacity-40 py-2 flex items-center justify-center gap-1">
                <ChevronLeft className="w-3 h-3"/> Voltar para Login
@@ -238,50 +257,57 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         )}
 
         {authMode === 'verify' && (
-          <form onSubmit={handleVerifyOtp} className="w-full space-y-6 text-center">
+          <form onSubmit={handleVerifyOtp} className="w-full space-y-6 text-center animate-in slide-in-from-right duration-300">
              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase">Código enviado para:</p>
-                <p className="text-sm font-black text-blue-600">{authData.email}</p>
+                <p className="text-xs font-bold uppercase text-black/40">Acabamos de enviar o código para:</p>
+                <p className="text-sm font-black text-black bg-gray-100 py-2 rounded-xl border-2 border-black/5">{authData.email}</p>
              </div>
              
-             <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-black/40">Digite o código de 6 dígitos</label>
+             <div className="space-y-4">
+                <label className="text-[9px] font-black uppercase text-black/40 tracking-widest">Digite o código recebido</label>
                 <input 
                   type="text" 
                   maxLength={6}
-                  placeholder="000000" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-4 text-center text-3xl font-black tracking-[10px] outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
+                  placeholder="000 000" 
+                  className="w-full bg-white border-4 border-black rounded-2xl py-5 text-center text-4xl font-black tracking-[12px] outline-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]" 
                   value={userOtpInput} 
                   onChange={e => setUserOtpInput(e.target.value.replace(/\D/g, ''))} 
                   required 
+                  autoFocus
                 />
+                <p className="text-[8px] font-black uppercase text-red-500 animate-pulse">Aguarde a notificação do e-mail no topo da tela!</p>
              </div>
 
-             <div className="space-y-3">
-                <button type="submit" className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" /> VERIFICAR CÓDIGO
+             <div className="space-y-4">
+                <button type="submit" className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all flex items-center justify-center gap-2 border-2 border-black">
+                  <Check className="w-4 h-4" /> CONFIRMAR CÓDIGO
                 </button>
-                <button type="button" onClick={() => setAuthMode('recovery')} className="w-full text-[10px] font-black uppercase text-black/40 py-2 underline">
-                  Não recebi o código / Alterar E-mail
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                   {resendTimer > 0 ? (
+                     <p className="text-[10px] font-black uppercase text-black/40 flex items-center gap-2">Reenviar em {resendTimer}s <Clock className="w-3 h-3"/></p>
+                   ) : (
+                     <button type="button" onClick={handleRecoveryRequest} className="text-[10px] font-black uppercase text-blue-600 underline">Não recebi o e-mail, reenviar código</button>
+                   )}
+                   <button type="button" onClick={() => setAuthMode('recovery')} className="text-[10px] font-black uppercase text-black/40 py-2">Alterar E-mail</button>
+                </div>
              </div>
           </form>
         )}
 
         {authMode === 'reset' && (
-          <form onSubmit={handleResetPassword} className="w-full space-y-4">
-             <div className="bg-green-50 border-2 border-green-200 p-4 rounded-2xl flex items-center gap-3 mb-2">
-                <ShieldCheck className="w-6 h-6 text-green-600" />
+          <form onSubmit={handleResetPassword} className="w-full space-y-4 animate-in zoom-in duration-300">
+             <div className="bg-green-50 border-2 border-green-200 p-4 rounded-2xl flex items-center gap-3 mb-2 shadow-sm">
+                <ShieldCheck className="w-6 h-6 text-green-600 shrink-0" />
                 <p className="text-[10px] font-black text-green-800 uppercase leading-tight">
-                  Identidade Confirmada! Agora escolha uma nova senha forte para o seu perfil.
+                  Identidade Confirmada! Defina sua nova senha de acesso abaixo.
                 </p>
              </div>
              <div className="relative space-y-1">
-                <label className="text-[9px] font-black uppercase text-black/40 px-1">Nova Senha</label>
+                <label className="text-[9px] font-black uppercase text-black/40 px-1">Crie sua nova Senha</label>
                 <input 
                   type={showPassword ? "text" : "password"} 
-                  placeholder="Minimo 6 caracteres" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
+                  placeholder="••••••••" 
+                  className="w-full bg-white border-2 border-black rounded-xl py-4 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
                   value={newPass} 
                   onChange={e => setNewPass(e.target.value)} 
                   required 
@@ -292,7 +318,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                 </button>
              </div>
              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all">
-               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ATUALIZAR SENHA E ENTRAR'}
+               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SALVAR NOVA SENHA'}
              </button>
           </form>
         )}
@@ -304,11 +330,11 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
             
             {authMode === 'register' && (
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-black/40 px-1">Nome Completo do Responsável</label>
+                <label className="text-[9px] font-black uppercase text-black/40 px-1">Nome Completo</label>
                 <input 
                   type="text" 
                   name="partner_full_name"
-                  placeholder="Ex: João Silva" 
+                  placeholder="Nome do Responsável" 
                   className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
                   value={authData.name} 
                   onChange={e => setAuthData({...authData, name: e.target.value})} 
@@ -317,12 +343,12 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-black/40 px-1">E-mail de Acesso</label>
+              <label className="text-[9px] font-black uppercase text-black/40 px-1">E-mail</label>
               <input 
                 type="email" 
                 name="partner_email"
                 autoComplete="new-email"
-                placeholder="email@exemplo.com" 
+                placeholder="Ex: joao@email.com" 
                 className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
                 value={authData.email} 
                 onChange={e => setAuthData({...authData, email: e.target.value})} 

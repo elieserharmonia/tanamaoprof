@@ -7,6 +7,7 @@ import HomeTab from './components/HomeTab';
 import ProTab from './components/ProTab';
 import AdminTab from './components/AdminTab';
 import InstallBanner from './components/InstallBanner';
+import SystemNotification from './components/SystemNotification';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
@@ -15,6 +16,13 @@ const App: React.FC = () => {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Estado para Notificação Global (E-mail Simulado)
+  const [notification, setNotification] = useState<{ show: boolean; title: string; message: string }>({
+    show: false,
+    title: '',
+    message: ''
+  });
 
   useEffect(() => {
     const initApp = async () => {
@@ -41,6 +49,10 @@ const App: React.FC = () => {
 
     initApp();
   }, []);
+
+  const triggerNotification = (title: string, message: string) => {
+    setNotification({ show: true, title, message });
+  };
 
   const saveProfessionalData = async (pro: Professional) => {
     setLoading(true);
@@ -96,6 +108,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-white shadow-2xl relative">
+      <SystemNotification 
+        show={notification.show} 
+        title={notification.title} 
+        message={notification.message} 
+        onClose={() => setNotification({ ...notification, show: false })} 
+      />
+      
       <InstallBanner 
         deferredPrompt={deferredPrompt} 
         onInstall={handleInstallClick} 
@@ -140,7 +159,8 @@ const App: React.FC = () => {
           <ProTab 
             onSave={saveProfessionalData} 
             currentUser={currentUser} 
-            onLogin={handleLogin} 
+            onLogin={handleLogin}
+            onSimulateEmail={triggerNotification}
           />
         )}
         {activeTab === Tab.ADMIN && (
@@ -151,7 +171,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Navigation (Ajustada para ser idêntica em largura ao Header) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black p-2 md:p-3 flex justify-center z-[60] safe-pb shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-7xl flex justify-around items-end">
           <button 
