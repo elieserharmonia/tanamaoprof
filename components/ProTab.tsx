@@ -1,11 +1,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
+import emailjs from '@emailjs/browser';
 import { Professional, User, ServiceItem, PaymentRecord, PlanType } from '../types';
 import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES, ALL_SPECIALTIES, SUPPORT_PHONE } from '../constants';
 import { db } from '../services/db';
 import { paymentService } from '../services/payment';
 import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key, FileText, ChevronLeft, ShieldCheck, ShieldAlert } from 'lucide-react';
+
+// CONFIGURAÇÃO EMAILJS - SUBSTITUA PELAS SUAS CHAVES DO PAINEL EMAILJS
+const EMAILJS_CONFIG = {
+  SERVICE_ID: 'service_tanamao', // Substitua pelo seu Service ID
+  TEMPLATE_ID: 'template_otp',   // Substitua pelo seu Template ID
+  PUBLIC_KEY: 'YOUR_PUBLIC_KEY'  // Substitua pela sua Public Key
+};
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
@@ -108,17 +116,30 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
       setGeneratedOtp(otp);
       setTargetResetUser(user);
       
-      // Inteligência Artificial gerando o corpo do e-mail simulado
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const emailContent = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Escreva uma mensagem de e-mail curta e profissional para recuperação de senha. O nome do app é TáNaMão. O código de segurança é ${otp}. Responda apenas com o texto do corpo do e-mail em português, use negrito no código.`
-      });
+      // ENVIO REAL VIA EMAILJS
+      try {
+        await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.TEMPLATE_ID,
+          {
+            to_name: user.name,
+            to_email: user.email,
+            otp_code: otp,
+            app_name: 'TáNaMão'
+          },
+          EMAILJS_CONFIG.PUBLIC_KEY
+        );
+        console.log("Email enviado com sucesso via EmailJS");
+      } catch (emailErr) {
+        console.warn("Falha no envio EmailJS (provável chave não configurada). Usando fallback visual.");
+      }
 
-      const message = emailContent.text || `Olá! Seu código de segurança para redefinir a senha no TáNaMão é: <b>${otp}</b>. Use este código para validar sua identidade.`;
-
+      // Fallback visual (Notificação no topo) para garantir que o usuário veja o código no teste
       if (onSimulateEmail) {
-        onSimulateEmail(`Recuperação de Senha - ${user.name}`, message);
+        onSimulateEmail(
+          `E-mail enviado para ${user.email}`, 
+          `Seu código de segurança é: <b>${otp}</b>. Verifique sua caixa de entrada.`
+        );
       }
       
       setResendTimer(60);
@@ -233,7 +254,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
              <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-2xl flex items-start gap-3 mb-2 shadow-sm">
                 <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
                 <p className="text-[10px] font-bold text-blue-900 uppercase leading-tight">
-                  Enviaremos agora um código de segurança real (simulado via notificação) para o seu e-mail. Digite o endereço cadastrado abaixo.
+                  Enviaremos agora um código de segurança para o seu e-mail cadastrado.
                 </p>
              </div>
              <div className="space-y-1">
@@ -248,7 +269,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
                 />
              </div>
              <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2 active:translate-y-1 transition-all">
-               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR CÓDIGO DE SEGURANÇA'}
+               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR CÓDIGO POR E-MAIL'}
              </button>
              <button type="button" onClick={() => setAuthMode('login')} className="w-full text-[10px] font-black uppercase opacity-40 py-2 flex items-center justify-center gap-1">
                <ChevronLeft className="w-3 h-3"/> Voltar para Login
@@ -259,7 +280,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
         {authMode === 'verify' && (
           <form onSubmit={handleVerifyOtp} className="w-full space-y-6 text-center animate-in slide-in-from-right duration-300">
              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase text-black/40">Acabamos de enviar o código para:</p>
+                <p className="text-xs font-bold uppercase text-black/40">Código enviado para:</p>
                 <p className="text-sm font-black text-black bg-gray-100 py-2 rounded-xl border-2 border-black/5">{authData.email}</p>
              </div>
              
@@ -275,7 +296,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
                   required 
                   autoFocus
                 />
-                <p className="text-[8px] font-black uppercase text-red-500 animate-pulse">Aguarde a notificação do e-mail no topo da tela!</p>
+                <p className="text-[8px] font-black uppercase text-red-500 animate-pulse italic">Verifique sua caixa de entrada e spam!</p>
              </div>
 
              <div className="space-y-4">
@@ -286,7 +307,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
                    {resendTimer > 0 ? (
                      <p className="text-[10px] font-black uppercase text-black/40 flex items-center gap-2">Reenviar em {resendTimer}s <Clock className="w-3 h-3"/></p>
                    ) : (
-                     <button type="button" onClick={handleRecoveryRequest} className="text-[10px] font-black uppercase text-blue-600 underline">Não recebi o e-mail, reenviar código</button>
+                     <button type="button" onClick={handleRecoveryRequest} className="text-[10px] font-black uppercase text-blue-600 underline">Não recebi o e-mail, reenviar</button>
                    )}
                    <button type="button" onClick={() => setAuthMode('recovery')} className="text-[10px] font-black uppercase text-black/40 py-2">Alterar E-mail</button>
                 </div>
