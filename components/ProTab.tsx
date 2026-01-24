@@ -1,30 +1,28 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import emailjs from '@emailjs/browser';
-import { Professional, User, ServiceItem, PaymentRecord, PlanType } from '../types';
-import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES, ALL_SPECIALTIES, SUPPORT_PHONE } from '../constants';
+import { Professional, User, PlanType } from '../types';
+import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpecialty, PLAN_PRICES } from '../constants';
 import { db } from '../services/db';
-import { paymentService } from '../services/payment';
-import { Camera, Save, Lock, Mail, User as UserIcon, LogIn, Loader2, RefreshCcw, Briefcase, ShoppingBag, PlusCircle, MapPin, Award, Zap, Check, Trash2, List, Copy, ExternalLink, QrCode, AlertCircle, TrendingUp, Clock, Eye, EyeOff, ChevronDown, MessageCircle, HelpCircle, Navigation, Key, FileText, ChevronLeft, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Camera, Lock, Mail, User as UserIcon, Loader2, MapPin, Award, Zap, Check, Key, FileText, ChevronLeft, ShieldCheck, ChevronDown, Clock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-// CONFIGURAÇÃO EMAILJS - SUBSTITUA PELAS SUAS CHAVES DO PAINEL EMAILJS
+// CONFIGURAÇÃO EMAILJS - CREDENCIAIS REAIS DO USUÁRIO
 const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_tanamao', // Substitua pelo seu Service ID
-  TEMPLATE_ID: 'template_otp',   // Substitua pelo seu Template ID
-  PUBLIC_KEY: 'YOUR_PUBLIC_KEY'  // Substitua pela sua Public Key
+  SERVICE_ID: 'service_z67v8qh',
+  TEMPLATE_ID: 'template_xanup4h',
+  PUBLIC_KEY: 'R6W4nxPqQRJ0wYfdu'
 };
 
 interface ProTabProps {
   onSave: (pro: Professional) => void;
   currentUser: User | null;
   onLogin: (user: User) => void;
-  onSimulateEmail?: (title: string, message: string) => void;
 }
 
 type AuthMode = 'login' | 'register' | 'recovery' | 'verify' | 'reset';
 
-const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulateEmail }) => {
+const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -117,35 +115,21 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
       setTargetResetUser(user);
       
       // ENVIO REAL VIA EMAILJS
-      try {
-        await emailjs.send(
-          EMAILJS_CONFIG.SERVICE_ID,
-          EMAILJS_CONFIG.TEMPLATE_ID,
-          {
-            to_name: user.name,
-            to_email: user.email,
-            otp_code: otp,
-            app_name: 'TáNaMão'
-          },
-          EMAILJS_CONFIG.PUBLIC_KEY
-        );
-        console.log("Email enviado com sucesso via EmailJS");
-      } catch (emailErr) {
-        console.warn("Falha no envio EmailJS (provável chave não configurada). Usando fallback visual.");
-      }
-
-      // Fallback visual (Notificação no topo) para garantir que o usuário veja o código no teste
-      if (onSimulateEmail) {
-        onSimulateEmail(
-          `E-mail enviado para ${user.email}`, 
-          `Seu código de segurança é: <b>${otp}</b>. Verifique sua caixa de entrada.`
-        );
-      }
+      await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        {
+          to_name: user.name,
+          to_email: user.email,
+          otp_code: otp,
+        },
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
       
       setResendTimer(60);
       setAuthMode('verify');
     } catch (err: any) {
-      alert(err.message);
+      alert("Erro ao enviar e-mail: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -254,7 +238,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
              <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-2xl flex items-start gap-3 mb-2 shadow-sm">
                 <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
                 <p className="text-[10px] font-bold text-blue-900 uppercase leading-tight">
-                  Enviaremos agora um código de segurança para o seu e-mail cadastrado.
+                  Enviaremos agora um código de segurança para o seu e-mail cadastrado. Verifique sua caixa de entrada.
                 </p>
              </div>
              <div className="space-y-1">
@@ -296,7 +280,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin, onSimulat
                   required 
                   autoFocus
                 />
-                <p className="text-[8px] font-black uppercase text-red-500 animate-pulse italic">Verifique sua caixa de entrada e spam!</p>
+                <p className="text-[8px] font-black uppercase text-gray-500 animate-pulse italic">Verifique sua caixa de entrada e spam!</p>
              </div>
 
              <div className="space-y-4">
