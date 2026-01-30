@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Estado para Notificação Global (Pode ser usado para outras coisas no futuro)
+  // Estado para Notificação Global
   const [notification, setNotification] = useState<{ show: boolean; title: string; message: string }>({
     show: false,
     title: '',

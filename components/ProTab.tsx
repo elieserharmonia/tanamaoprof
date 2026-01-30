@@ -7,7 +7,7 @@ import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpeci
 import { db } from '../services/db';
 import { Camera, Lock, Mail, User as UserIcon, Loader2, MapPin, Award, Zap, Check, Key, FileText, ChevronLeft, ShieldCheck, ChevronDown, Clock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-// CONFIGURAÇÃO EMAILJS - CREDENCIAIS REAIS DO USUÁRIO
+// CONFIGURAÇÃO EMAILJS - CREDENCIAIS REAIS
 const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_z67v8qh',
   TEMPLATE_ID: 'template_xanup4h',
@@ -39,6 +39,11 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [resendTimer, setResendTimer] = useState(0);
   
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Inicializa o EmailJS no carregamento do componente
+  useEffect(() => {
+    emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+  }, []);
 
   useEffect(() => {
     let interval: any;
@@ -120,7 +125,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         EMAILJS_CONFIG.TEMPLATE_ID,
         {
           to_name: user.name,
-          to_email: user.email,
+          email: user.email,
           otp_code: otp,
         },
         EMAILJS_CONFIG.PUBLIC_KEY
