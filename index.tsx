@@ -1,18 +1,16 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker apontando para a raiz absoluta
+// Registro do Service Worker de forma resiliente
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Registro absoluto para garantir que o SW seja encontrado na raiz do domínio
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => {
         console.log('TáNaMão PWA: Service Worker ativo!', reg.scope);
       })
       .catch(err => {
-        console.error('TáNaMão PWA: Erro ao registrar Service Worker:', err);
+        console.warn('TáNaMão PWA: Erro ao registrar Service Worker (pode ser ambiente de dev):', err);
       });
   });
 }

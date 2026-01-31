@@ -6,7 +6,7 @@
     <title>TáNaMão - Profissionais e Serviços</title>
     <meta name="theme-color" content="#FACC15">
     
-    <!-- PWA Meta Tags Modernas -->
+    <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,49 +15,50 @@
     
     <meta name="description" content="O guia definitivo de profissionais e serviços na sua região. Tudo na palma da sua mão!">
     
-    <!-- Tailwind JIT - Configuração de Produção -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      window.tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-          }
-        }
-      }
-    </script>
+    <!-- Tailwind CSS Produção (Substituindo o script CDN de desenvolvimento) -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style type="text/css">
+        :root {
+          --yellow-brand: #FACC15;
+        }
         body { 
           font-family: 'Inter', sans-serif; 
           -webkit-tap-highlight-color: transparent;
-          background-color: #FACC15;
+          background-color: var(--yellow-brand);
           margin: 0;
+          overflow-x: hidden;
         }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Ajustes finos para simular o comportamento do Tailwind 3+ que o script oferecia */
+        .bg-yellow-400 { background-color: #FACC15; }
+        .text-yellow-400 { color: #FACC15; }
+        .border-yellow-400 { border-color: #FACC15; }
     </style>
+
 <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "@emailjs/browser": "https://esm.sh/@emailjs/browser@^4.4.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "@google/genai": "https://esm.sh/@google/genai@0.21.0",
+    "@emailjs/browser": "https://esm.sh/@emailjs/browser@4.4.1",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
-<body class="text-black overflow-x-hidden">
+<body class="text-black">
     <div id="root"></div>
+    <!-- Caminho absoluto para garantir resolução pelo Vite e Vercel -->
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>

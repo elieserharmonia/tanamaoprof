@@ -1,7 +1,21 @@
 {
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/manifest.json", "destination": "/manifest.json" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { 
+      "source": "/sw.js", 
+      "destination": "/sw.js" 
+    },
+    { 
+      "source": "/manifest.json", 
+      "destination": "/manifest.json" 
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    { 
+      "source": "/((?!.*\\.).*)", 
+      "destination": "/index.html" 
+    }
   ]
 }
