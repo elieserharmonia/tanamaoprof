@@ -3,23 +3,22 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro robusto do Service Worker para PWA
+// Registro do Service Worker apontando para a raiz relativa
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Usando caminho absoluto para evitar que o roteamento do SPA retorne HTML
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    navigator.serviceWorker.register('./sw.js')
       .then(reg => {
-        console.log('TáNaMão: Service Worker registrado com sucesso!', reg.scope);
+        console.log('TáNaMão: Service Worker ativo!', reg.scope);
       })
       .catch(err => {
-        console.error('TáNaMão: Falha ao registrar Service Worker:', err);
+        console.error('TáNaMão: Erro no Service Worker:', err);
       });
   });
 }
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  throw new Error("Elemento root não encontrado");
 }
 
 const root = ReactDOM.createRoot(rootElement);

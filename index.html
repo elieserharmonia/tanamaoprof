@@ -7,19 +7,13 @@
     <title>TáNaMão - Profissionais e Serviços</title>
     <meta name="theme-color" content="#FACC15">
     
-    <!-- Meta Tags para Compartilhamento (WhatsApp, FB, etc) -->
+    <!-- Meta Tags para Compartilhamento -->
     <meta property="og:title" content="TáNaMão - Profissionais e Serviços">
     <meta property="og:description" content="Encontre os melhores profissionais da sua região. Tudo o que você precisa, Tá Na Mão!">
     <meta property="og:image" content="https://ui-avatars.com/api/?name=T&background=FACC15&color=000000&size=512&bold=true">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tanamao.vercel.app">
     
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="TáNaMão - Profissionais e Serviços">
-    <meta name="twitter:description" content="Encontre os melhores profissionais da sua região.">
-    <meta name="twitter:image" content="https://ui-avatars.com/api/?name=T&background=FACC15&color=000000&size=512&bold=true">
-
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://ui-avatars.com/api/?name=T&background=FACC15&color=000000&size=32&bold=true">
 
@@ -34,7 +28,7 @@
     
     <meta name="description" content="O guia definitivo de profissionais e serviços na sua região.">
     
-    <!-- Tailwind Configuration para silenciar avisos e otimizar performance JIT -->
+    <!-- Tailwind JIT CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -64,8 +58,6 @@
           to { opacity: 1; transform: scale(1); }
         }
         .animate-card { animation: fadeInScale 0.3s ease-out forwards; }
-
-        /* Safe Area Padding para iPhones novos */
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 <script type="importmap">

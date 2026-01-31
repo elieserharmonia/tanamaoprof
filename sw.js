@@ -1,11 +1,9 @@
 
-const CACHE_NAME = 'tanamao-v2';
+const CACHE_NAME = 'tanamao-v2.1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap'
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,22 +31,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignorar requisições de API e Supabase para não quebrar o tempo real
   if (event.request.url.includes('supabase.co') || event.request.url.includes('googleSearch')) {
     return;
   }
-
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        // Opcional: Adicionar novas requisições de assets ao cache dinamicamente
-        return fetchResponse;
-      });
-    }).catch(() => {
-      // Fallback offline básico
-      if (event.request.mode === 'navigate') {
-        return caches.match('/');
-      }
+      return response || fetch(event.request);
     })
   );
 });

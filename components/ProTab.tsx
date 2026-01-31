@@ -7,7 +7,6 @@ import { DAYS_OF_WEEK, PRO_CATEGORIES, COMERCIO_CATEGORIES, getCategoryFromSpeci
 import { db } from '../services/db';
 import { Camera, Lock, Mail, User as UserIcon, Loader2, MapPin, Award, Zap, Check, Key, FileText, ChevronLeft, ShieldCheck, ChevronDown, Clock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-// CONFIGURAÇÃO EMAILJS - CREDENCIAIS REAIS
 const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_z67v8qh',
   TEMPLATE_ID: 'template_xanup4h',
@@ -32,15 +31,12 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [newPass, setNewPass] = useState('');
   
-  // Estados para Recuperação Segura
   const [targetResetUser, setTargetResetUser] = useState<User | null>(null);
   const [generatedOtp, setGeneratedOtp] = useState<string>('');
   const [userOtpInput, setUserOtpInput] = useState<string>('');
   const [resendTimer, setResendTimer] = useState(0);
-  
   const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // Inicializa o EmailJS no carregamento do componente
   useEffect(() => {
     emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
   }, []);
@@ -94,103 +90,20 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     checkExistingProfile();
   }, [currentUser]);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (authMode === 'login') {
-        const user = await db.signIn(authData.email, authData.password);
-        onLogin(user);
-      } else if (authMode === 'register') {
-        const user = await db.signUp(authData.email, authData.password, authData.name);
-        onLogin(user);
-      }
-    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
-  };
-
-  const handleRecoveryRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const user = await db.getUserByEmail(authData.email);
-      if (!user) throw new Error("Este e-mail não está cadastrado em nossa base.");
-      
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(otp);
-      setTargetResetUser(user);
-      
-      // ENVIO REAL VIA EMAILJS
-      await emailjs.send(
-        EMAILJS_CONFIG.SERVICE_ID,
-        EMAILJS_CONFIG.TEMPLATE_ID,
-        {
-          to_name: user.name,
-          email: user.email,
-          otp_code: otp,
-        },
-        EMAILJS_CONFIG.PUBLIC_KEY
-      );
-      
-      setResendTimer(60);
-      setAuthMode('verify');
-    } catch (err: any) {
-      alert("Erro ao enviar e-mail: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userOtpInput === generatedOtp) {
-      setAuthMode('reset');
-    } else {
-      alert("Código incorreto. Verifique o e-mail que acabamos de enviar para você.");
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!targetResetUser || !newPass) return;
-    setLoading(true);
-    try {
-      await db.updatePassword(targetResetUser.id, newPass);
-      alert("Sucesso! Sua senha foi alterada. Faça login com a nova senha.");
-      setAuthMode('login');
-      setNewPass('');
-      setTargetResetUser(null);
-      setGeneratedOtp('');
-      setUserOtpInput('');
-    } catch (err: any) {
-      alert("Erro ao redefinir: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdatePassword = async () => {
-    if (!newPass) return;
-    try {
-      await db.updatePassword(currentUser!.id, newPass);
-      alert("Senha alterada com sucesso!");
-      setIsChangingPass(false);
-      setNewPass('');
-    } catch (err) { alert("Erro ao alterar senha."); }
-  };
-
   const geocodeAddress = async (silent = false) => {
-    if (!formData.city || !formData.state) return;
-    if (!process.env.API_KEY) {
-      if (!silent) console.warn("API Key não configurada para geolocalização.");
+    const apiKey = process.env.API_KEY;
+    if (!formData.city || !formData.state || !apiKey) {
+      if (!silent && !apiKey) console.error("API Key do Google GenAI não encontrada.");
       return;
     }
+
     setIsGeocoding(true);
     try {
       const addressString = `${formData.street || ''}, ${formData.neighborhood || ''}, ${formData.city}, ${formData.state}, Brasil`;
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Retorne latitude e longitude JSON para: ${addressString}`,
+        contents: `Retorne latitude e longitude JSON para o endereço: ${addressString}. Responda apenas o JSON.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -206,16 +119,33 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       const result = JSON.parse(response.text || '{}');
       if (result.latitude && result.longitude) {
         setFormData(prev => ({ ...prev, latitude: result.latitude, longitude: result.longitude }));
-        if (!silent) alert("Localização detectada!");
+        if (!silent) alert("Localização do seu negócio detectada com sucesso!");
       }
-    } catch (err) { console.error("Erro no geocoding:", err); } finally { setIsGeocoding(false); }
+    } catch (err) { 
+      console.error("Falha ao detectar coordenadas:", err); 
+    } finally { 
+      setIsGeocoding(false); 
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (authMode === 'login') {
+        const user = await db.signIn(authData.email, authData.password);
+        onLogin(user);
+      } else if (authMode === 'register') {
+        const user = await db.signUp(authData.email, authData.password, authData.name);
+        onLogin(user);
+      }
+    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
     
-    // Tenta obter coordenadas se faltarem, mas não bloqueia se a API Key estiver ausente
     if (!formData.latitude || !formData.longitude) {
       await geocodeAddress(true);
     }
@@ -245,165 +175,33 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           {authMode === 'reset' && 'Criar Nova Senha'}
         </h2>
 
-        {authMode === 'recovery' && (
-          <form onSubmit={handleRecoveryRequest} className="w-full space-y-4">
-             <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-2xl flex items-start gap-3 mb-2 shadow-sm">
-                <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
-                <p className="text-[10px] font-bold text-blue-900 uppercase leading-tight">
-                  Enviaremos agora um código de segurança para o seu e-mail cadastrado. Verifique sua caixa de entrada.
-                </p>
-             </div>
-             <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-black/40 px-1">Seu E-mail Cadastrado</label>
-                <input 
-                  type="email" 
-                  placeholder="Ex: joao@email.com" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-4 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-y-0.5 active:shadow-none" 
-                  value={authData.email} 
-                  onChange={e => setAuthData({...authData, email: e.target.value})} 
-                  required 
-                />
-             </div>
-             <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2 active:translate-y-1 transition-all">
-               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ENVIAR CÓDIGO POR E-MAIL'}
-             </button>
-             <button type="button" onClick={() => setAuthMode('login')} className="w-full text-[10px] font-black uppercase opacity-40 py-2 flex items-center justify-center gap-1">
-               <ChevronLeft className="w-3 h-3"/> Voltar para Login
-             </button>
-          </form>
-        )}
-
-        {authMode === 'verify' && (
-          <form onSubmit={handleVerifyOtp} className="w-full space-y-6 text-center animate-in slide-in-from-right duration-300">
-             <div className="space-y-2">
-                <p className="text-xs font-bold uppercase text-black/40">Código enviado para:</p>
-                <p className="text-sm font-black text-black bg-gray-100 py-2 rounded-xl border-2 border-black/5">{authData.email}</p>
-             </div>
-             
-             <div className="space-y-4">
-                <label className="text-[9px] font-black uppercase text-black/40 tracking-widest">Digite o código recebido</label>
-                <input 
-                  type="text" 
-                  maxLength={6}
-                  placeholder="000 000" 
-                  className="w-full bg-white border-4 border-black rounded-2xl py-5 text-center text-4xl font-black tracking-[12px] outline-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]" 
-                  value={userOtpInput} 
-                  onChange={e => setUserOtpInput(e.target.value.replace(/\D/g, ''))} 
-                  required 
-                  autoFocus
-                />
-                <p className="text-[8px] font-black uppercase text-gray-500 animate-pulse italic">Verifique sua caixa de entrada e spam!</p>
-             </div>
-
-             <div className="space-y-4">
-                <button type="submit" className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all flex items-center justify-center gap-2 border-2 border-black">
-                  <Check className="w-4 h-4" /> CONFIRMAR CÓDIGO
-                </button>
-                <div className="flex flex-col items-center gap-2">
-                   {resendTimer > 0 ? (
-                     <p className="text-[10px] font-black uppercase text-black/40 flex items-center gap-2">Reenviar em {resendTimer}s <Clock className="w-3 h-3"/></p>
-                   ) : (
-                     <button type="button" onClick={handleRecoveryRequest} className="text-[10px] font-black uppercase text-blue-600 underline">Não recebi o e-mail, reenviar</button>
-                   )}
-                   <button type="button" onClick={() => setAuthMode('recovery')} className="text-[10px] font-black uppercase text-black/40 py-2">Alterar E-mail</button>
-                </div>
-             </div>
-          </form>
-        )}
-
-        {authMode === 'reset' && (
-          <form onSubmit={handleResetPassword} className="w-full space-y-4 animate-in zoom-in duration-300">
-             <div className="bg-green-50 border-2 border-green-200 p-4 rounded-2xl flex items-center gap-3 mb-2 shadow-sm">
-                <ShieldCheck className="w-6 h-6 text-green-600 shrink-0" />
-                <p className="text-[10px] font-black text-green-800 uppercase leading-tight">
-                  Identidade Confirmada! Defina sua nova senha de acesso abaixo.
-                </p>
-             </div>
-             <div className="relative space-y-1">
-                <label className="text-[9px] font-black uppercase text-black/40 px-1">Crie sua nova Senha</label>
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="••••••••" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-4 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
-                  value={newPass} 
-                  onChange={e => setNewPass(e.target.value)} 
-                  required 
-                  minLength={6}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-black/40">
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-             </div>
-             <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all">
-               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SALVAR NOVA SENHA'}
-             </button>
-          </form>
-        )}
-
         {(authMode === 'login' || authMode === 'register') && (
-          <form onSubmit={handleAuth} className="w-full space-y-4" autoComplete="off">
-            <input type="text" style={{display:'none'}} />
-            <input type="password" style={{display:'none'}} />
-            
+          <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4" autoComplete="off">
             {authMode === 'register' && (
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-black/40 px-1">Nome Completo</label>
-                <input 
-                  type="text" 
-                  name="partner_full_name"
-                  placeholder="Nome do Responsável" 
-                  className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
-                  value={authData.name} 
-                  onChange={e => setAuthData({...authData, name: e.target.value})} 
-                  required 
-                />
+                <input type="text" placeholder="Nome do Responsável" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.name} onChange={e => setAuthData({...authData, name: e.target.value})} required />
               </div>
             )}
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase text-black/40 px-1">E-mail</label>
-              <input 
-                type="email" 
-                name="partner_email"
-                autoComplete="new-email"
-                placeholder="Ex: joao@email.com" 
-                className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
-                value={authData.email} 
-                onChange={e => setAuthData({...authData, email: e.target.value})} 
-                required 
-              />
+              <input type="email" placeholder="Ex: joao@email.com" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} required />
             </div>
             <div className="relative space-y-1">
               <label className="text-[9px] font-black uppercase text-black/40 px-1">Senha</label>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                name="partner_password"
-                autoComplete="new-password"
-                placeholder="••••••••" 
-                className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
-                value={authData.password} 
-                onChange={e => setAuthData({...authData, password: e.target.value})} 
-                required 
-              />
+              <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-black/40">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            
-            {authMode === 'login' && (
-              <div className="text-right">
-                <button type="button" onClick={() => { setAuthMode('recovery'); setAuthData({...authData, email: ''}); }} className="text-[9px] font-black uppercase text-black/40 hover:text-black transition-colors underline decoration-dotted">Esqueci minha senha</button>
-              </div>
-            )}
-
             <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR NO PAINEL' : 'CRIAR MINHA CONTA'}
             </button>
           </form>
         )}
-
-        {authMode !== 'recovery' && authMode !== 'verify' && authMode !== 'reset' && (
-          <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="mt-6 text-[10px] font-black uppercase underline decoration-black/20 opacity-40 hover:opacity-100 transition-opacity">{authMode === 'login' ? 'Ainda não é parceiro? Cadastre-se' : 'Já possui conta? Faça login'}</button>
-        )}
+        <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="mt-6 text-[10px] font-black uppercase opacity-40 hover:opacity-100 transition-opacity">
+          {authMode === 'login' ? 'Ainda não é parceiro? Cadastre-se' : 'Já possui conta? Faça login'}
+        </button>
       </div>
     );
   }
@@ -422,12 +220,12 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                 <div className="bg-black p-2 rounded-xl"><UserIcon className="w-4 h-4 text-yellow-400" /></div>
                 <div><p className="text-[10px] font-black uppercase">{currentUser.name}</p></div>
              </div>
-             <button type="button" onClick={() => setIsChangingPass(true)} className="bg-white border-2 border-black p-2 rounded-xl shadow-sm hover:bg-black hover:text-yellow-400 transition-all"><Key className="w-4 h-4"/></button>
+             <button type="button" onClick={() => setIsChangingPass(true)} className="bg-white border-2 border-black p-2 rounded-xl shadow-sm"><Key className="w-4 h-4"/></button>
           </div>
 
           <div className="flex justify-center">
             <div className="relative group">
-              <img src={formData.photoUrl} className="w-24 h-24 rounded-full border-4 border-black object-cover bg-white shadow-xl transition-transform group-hover:scale-105" alt="Preview" />
+              <img src={formData.photoUrl} className="w-24 h-24 rounded-full border-4 border-black object-cover bg-white shadow-xl" alt="Preview" />
               <div className="absolute -bottom-1 -right-1 bg-black p-2.5 rounded-full border-2 border-white shadow-lg"><Camera className="w-3.5 h-3.5 text-white" /></div>
               <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => {
                  const file = e.target.files?.[0];
@@ -442,118 +240,55 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
 
           <div className="space-y-4">
             <div className="space-y-1">
-               <label className="text-[10px] font-black uppercase text-black/40 px-1">Nome do Negócio / Fantasia</label>
-               <input type="text" placeholder="Ex: PADARIA CENTRAL" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold uppercase text-sm outline-none shadow-sm focus:ring-2 ring-yellow-400/50" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+               <label className="text-[10px] font-black uppercase text-black/40 px-1">Nome do Negócio</label>
+               <input type="text" placeholder="Ex: PADARIA CENTRAL" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold uppercase text-sm outline-none" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
             </div>
 
             <div className="space-y-1">
-               <label className="text-[10px] font-black uppercase text-black/40 px-1">Ramo de Atividade Principal</label>
-               <div className="relative">
-                 <select className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs appearance-none outline-none shadow-sm" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} required>
-                   <option value="">Selecione sua Especialidade</option>
-                   {Object.entries({...PRO_CATEGORIES, ...COMERCIO_CATEGORIES}).map(([cat, subs]) => (
-                     <optgroup key={cat} label={cat}>{subs.map(sub => <option key={sub} value={sub}>{sub}</option>)}</optgroup>
-                   ))}
-                 </select>
-                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
-               </div>
+               <label className="text-[10px] font-black uppercase text-black/40 px-1">Especialidade</label>
+               <select className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} required>
+                 <option value="">Selecione sua Especialidade</option>
+                 {Object.entries({...PRO_CATEGORIES, ...COMERCIO_CATEGORIES}).map(([cat, subs]) => (
+                   <optgroup key={cat} label={cat}>{subs.map(sub => <option key={sub} value={sub}>{sub}</option>)}</optgroup>
+                 ))}
+               </select>
             </div>
 
             <div className="space-y-1">
-               <label className="text-[10px] font-black uppercase text-black/40 px-1 flex items-center gap-1"><FileText className="w-3 h-3"/> Descrição / O que você faz?</label>
-               <textarea 
-                 placeholder="Conte um pouco sobre sua experiência, serviços que oferece e diferenciais..." 
-                 className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none min-h-[140px] resize-none shadow-sm focus:ring-2 ring-yellow-400/50" 
-                 value={formData.bio} 
-                 onChange={e => setFormData({...formData, bio: e.target.value})} 
-               />
-               <p className="text-[8px] font-bold text-black/30 uppercase italic px-1">Dica: Perfis com descrições detalhadas recebem 3x mais contatos!</p>
+               <label className="text-[10px] font-black uppercase text-black/40 px-1">Descrição</label>
+               <textarea placeholder="Conte sobre seu trabalho..." className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none min-h-[140px]" value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
             </div>
 
-            <div className="bg-white border-2 border-black rounded-3xl p-5 space-y-4 shadow-sm">
+            <div className="bg-white border-2 border-black rounded-3xl p-5 space-y-4">
                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase text-black/40">Onde fica seu local?</h4>
-                  <button type="button" onClick={() => geocodeAddress()} disabled={isGeocoding} className="text-[9px] font-black uppercase bg-black text-yellow-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50">
-                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> Localizar via IA</>}
+                  <h4 className="text-[10px] font-black uppercase text-black/40">Endereço</h4>
+                  <button type="button" onClick={() => geocodeAddress()} disabled={isGeocoding} className="text-[9px] font-black uppercase bg-black text-yellow-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> IA Geocode</>}
                   </button>
                </div>
                <div className="grid grid-cols-2 gap-3">
-                  <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
-                  <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+                  <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                  <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
                </div>
-               <input type="text" placeholder="Rua / Avenida e Número" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
-               <input type="text" placeholder="Bairro" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-black/40 px-1">WhatsApp de Contato</label>
-                 <input type="tel" placeholder="(00) 00000-0000" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
-              </div>
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-black/40 px-1">Telefone Fixo (Opcional)</label>
-                 <input type="tel" placeholder="(00) 0000-0000" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none shadow-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              </div>
+               <input type="text" placeholder="Rua e Número" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
             </div>
           </div>
 
-          <button type="submit" disabled={isGeocoding} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
-            {isGeocoding ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'CONCLUIR E SALVAR'}
+          <button type="submit" disabled={isGeocoding} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all">
+            {isGeocoding ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR ALTERAÇÕES'}
           </button>
         </form>
       ) : (
-        <div className="space-y-6 animate-in slide-in-from-right duration-300">
-           <div className="bg-white border-4 border-black rounded-[40px] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center gap-4 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-black font-black text-[10px] px-6 py-1 rotate-45 translate-x-4 translate-y-2 uppercase shadow-md">POPULAR</div>
-              <div className="bg-yellow-400 p-4 rounded-3xl border-2 border-black shadow-lg"><Zap className="w-10 h-10 fill-black" /></div>
-              <h3 className="text-2xl font-black italic uppercase">Plano VIP</h3>
-              <p className="text-[11px] font-bold opacity-60 uppercase leading-tight">Destaque seu perfil no topo das buscas por 30 dias!</p>
+        <div className="space-y-6">
+           <div className="bg-white border-4 border-black rounded-[40px] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center gap-4 relative overflow-hidden">
+              <div className="bg-yellow-400 p-4 rounded-3xl border-2 border-black"><Zap className="w-10 h-10 fill-black" /></div>
+              <h3 className="text-2xl font-black uppercase italic">Plano VIP</h3>
+              <p className="text-[11px] font-bold opacity-60 uppercase">Destaque seu perfil no topo!</p>
               <div className="flex items-baseline gap-1 mt-2">
-                 <span className="text-lg font-black">R$</span>
-                 <span className="text-4xl font-black">9,90</span>
+                 <span className="text-4xl font-black">R$ 9,90</span>
                  <span className="text-xs font-bold opacity-40">/mês</span>
               </div>
-              <button className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-transform">Assinar VIP Agora</button>
-           </div>
-           
-           <div className="bg-yellow-400 border-4 border-black rounded-[40px] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center gap-4 group">
-              <div className="bg-black p-4 rounded-3xl border-2 border-yellow-400 shadow-lg"><Award className="w-10 h-10 text-yellow-400" /></div>
-              <h3 className="text-2xl font-black italic uppercase">Plano Premium</h3>
-              <p className="text-[11px] font-bold opacity-80 uppercase leading-tight">Visibilidade total o ano inteiro e suporte prioritário!</p>
-              <div className="flex items-baseline gap-1 mt-2">
-                 <span className="text-lg font-black">R$</span>
-                 <span className="text-4xl font-black">99,00</span>
-                 <span className="text-xs font-bold opacity-40">/ano</span>
-              </div>
-              <button className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-transform">Assinar Premium</button>
-           </div>
-        </div>
-      )}
-
-      {isChangingPass && (
-        <div className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white border-4 border-black w-full max-w-xs rounded-3xl p-6 space-y-6 shadow-[10px_10px_0px_0px_rgba(250,204,21,1)]">
-              <div className="text-center space-y-2">
-                 <h2 className="text-xl font-black uppercase italic">Nova Senha</h2>
-                 <p className="text-[9px] font-bold opacity-40 uppercase">Dica: Use letras, números e símbolos.</p>
-              </div>
-              <div className="relative">
-                 <input 
-                   type={showPassword ? "text" : "password"} 
-                   placeholder="Digite a nova senha" 
-                   className="w-full bg-gray-50 border-2 border-black rounded-xl p-4 font-bold outline-none pr-12" 
-                   value={newPass} 
-                   onChange={e => setNewPass(e.target.value)} 
-                   minLength={6}
-                 />
-                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40">
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                 </button>
-              </div>
-              <div className="flex gap-2">
-                 <button onClick={() => setIsChangingPass(false)} className="flex-1 text-[10px] font-black uppercase opacity-40 py-2">Cancelar</button>
-                 <button onClick={handleUpdatePassword} className="flex-[2] bg-black text-yellow-400 py-3 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1">Confirmar</button>
-              </div>
+              <button className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs">Assinar Agora</button>
            </div>
         </div>
       )}
