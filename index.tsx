@@ -3,12 +3,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker usando caminho absoluto para evitar 404 em sub-rotas
+// Registro do Service Worker apontando para a raiz pública
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // Busca o arquivo na raiz /sw.js que foi movido para /public
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
-        console.log('TáNaMão PWA: Service Worker registrado!', reg.scope);
+        console.log('TáNaMão PWA: Service Worker ativo!', reg.scope);
       })
       .catch(err => {
         console.error('TáNaMão PWA: Erro ao registrar Service Worker:', err);

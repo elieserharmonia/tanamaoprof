@@ -3,8 +3,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig, UserLocation } from '../types';
 import { INITIAL_PROS } from '../constants';
 
+// Prioriza variáveis de ambiente da Vercel
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qcsxtkzgjrhzmvwvqpse.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_eNbpiaeRxpBUI8TKsLfekA_b8fcFpAK';
+
+// Garante que o cliente só é criado se as chaves estiverem presentes
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("ERRO: Chaves do Supabase não configuradas no ambiente Vercel.");
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -164,9 +170,6 @@ export const db = {
     pro.reviews.push(review);
     await this.saveProfessional(pro);
     
-    // Simulação de e-mail ao proprietário
-    console.log(`[NOTIFICAÇÃO E-MAIL] Para: ${pro.email} | Assunto: Você recebeu uma avaliação! | Conteúdo: ${review.userName} avaliou com nota ${review.rating}: "${review.comment}"`);
-
     return pro;
   },
 

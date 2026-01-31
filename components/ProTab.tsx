@@ -85,14 +85,16 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
   const geocodeAddress = async (silent = false) => {
     const apiKey = process.env.API_KEY;
     
-    // CORREÇÃO CRÍTICA: Se não há API Key, não tenta instanciar o GoogleGenAI
-    if (!apiKey || !formData.city || !formData.state) {
-      if (!silent && !apiKey) {
-        console.warn("Google API Key não configurada no ambiente. Pulando geolocalização por IA.");
-        alert("Aviso: Chave de IA não configurada. O perfil será salvo sem coordenadas exatas.");
+    // CORREÇÃO: Verificação rigorosa da API Key antes da instanciação
+    if (!apiKey) {
+      if (!silent) {
+        console.warn("IA indisponível: Chave de API não encontrada.");
+        alert("Aviso: A localização automática via IA está temporariamente indisponível. Preencha seu endereço manualmente.");
       }
       return;
     }
+
+    if (!formData.city || !formData.state) return;
 
     setIsGeocoding(true);
     try {
@@ -100,7 +102,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Retorne latitude e longitude JSON para o endereço: ${addressString}. Responda apenas o objeto JSON.`,
+        contents: `Retorne latitude e longitude JSON para o endereço: ${addressString}. Responda apenas o objeto JSON puro.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -143,7 +145,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     e.preventDefault();
     if (!currentUser) return;
     
-    // Tenta geocoding se houver API Key, senão segue com o salvamento
+    // Tenta geocoding se houver API Key e as coordenadas estiverem zeradas
     if (process.env.API_KEY && (!formData.latitude || !formData.longitude)) {
       await geocodeAddress(true);
     }
@@ -158,9 +160,11 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     
     try {
       setLoading(true);
+      await db.saveProfessional(pro);
       onSave(pro);
+      alert("Perfil salvo com sucesso!");
     } catch (err) {
-      alert("Erro ao salvar perfil.");
+      alert("Erro ao salvar perfil no Supabase.");
     } finally {
       setLoading(false);
     }
@@ -242,12 +246,12 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           <div className="space-y-4">
             <div className="space-y-1">
                <label className="text-[10px] font-black uppercase text-black/40 px-1">Nome do Negócio</label>
-               <input type="text" placeholder="Ex: PADARIA CENTRAL" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold uppercase text-sm outline-none" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+               <input type="text" placeholder="Ex: PADARIA CENTRAL" className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold uppercase text-sm outline-none shadow-sm" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
             </div>
 
             <div className="space-y-1">
                <label className="text-[10px] font-black uppercase text-black/40 px-1">Especialidade</label>
-               <select className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} required>
+               <select className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs shadow-sm" value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})} required>
                  <option value="">Selecione sua Especialidade</option>
                  {Object.entries({...PRO_CATEGORIES, ...COMERCIO_CATEGORIES}).map(([cat, subs]) => (
                    <optgroup key={cat} label={cat}>{subs.map(sub => <option key={sub} value={sub}>{sub}</option>)}</optgroup>
@@ -257,14 +261,14 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
 
             <div className="space-y-1">
                <label className="text-[10px] font-black uppercase text-black/40 px-1">Descrição</label>
-               <textarea placeholder="Conte sobre seu trabalho..." className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none min-h-[140px]" value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
+               <textarea placeholder="Conte sobre seu trabalho..." className="w-full bg-white border-2 border-black rounded-xl p-3 font-bold text-xs outline-none min-h-[140px] shadow-sm" value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
             </div>
 
-            <div className="bg-white border-2 border-black rounded-3xl p-5 space-y-4">
+            <div className="bg-white border-2 border-black rounded-3xl p-5 space-y-4 shadow-sm">
                <div className="flex items-center justify-between">
                   <h4 className="text-[10px] font-black uppercase text-black/40">Endereço</h4>
-                  <button type="button" onClick={() => geocodeAddress()} disabled={isGeocoding} className="text-[9px] font-black uppercase bg-black text-yellow-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> Localizar por IA</>}
+                  <button type="button" onClick={() => geocodeAddress()} disabled={isGeocoding} className="text-[9px] font-black uppercase bg-black text-yellow-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all">
+                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> IA Geocode</>}
                   </button>
                </div>
                <div className="grid grid-cols-2 gap-3">
@@ -272,11 +276,12 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                   <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
                </div>
                <input type="text" placeholder="Rua e Número" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+               <input type="text" placeholder="Bairro" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
             </div>
           </div>
 
-          <button type="submit" disabled={isGeocoding || loading} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all">
-            {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR PERFIL'}
+          <button type="submit" disabled={isGeocoding || loading} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR NO SUPABASE'}
           </button>
         </form>
       ) : (
