@@ -180,6 +180,10 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
 
   const geocodeAddress = async (silent = false) => {
     if (!formData.city || !formData.state) return;
+    if (!process.env.API_KEY) {
+      if (!silent) console.warn("API Key não configurada para geolocalização.");
+      return;
+    }
     setIsGeocoding(true);
     try {
       const addressString = `${formData.street || ''}, ${formData.neighborhood || ''}, ${formData.city}, ${formData.state}, Brasil`;
@@ -199,16 +203,19 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           }
         }
       });
-      const result = JSON.parse(response.text);
-      setFormData(prev => ({ ...prev, latitude: result.latitude, longitude: result.longitude }));
-      if (!silent) alert("Localização detectada!");
-    } catch (err) { console.error(err); } finally { setIsGeocoding(false); }
+      const result = JSON.parse(response.text || '{}');
+      if (result.latitude && result.longitude) {
+        setFormData(prev => ({ ...prev, latitude: result.latitude, longitude: result.longitude }));
+        if (!silent) alert("Localização detectada!");
+      }
+    } catch (err) { console.error("Erro no geocoding:", err); } finally { setIsGeocoding(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
     
+    // Tenta obter coordenadas se faltarem, mas não bloqueia se a API Key estiver ausente
     if (!formData.latitude || !formData.longitude) {
       await geocodeAddress(true);
     }

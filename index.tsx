@@ -3,12 +3,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker para PWA
+// Registro robusto do Service Worker para PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registrado!', reg))
-      .catch(err => console.log('Erro ao registrar SW', err));
+    // Usando caminho absoluto para evitar que o roteamento do SPA retorne HTML
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        console.log('TáNaMão: Service Worker registrado com sucesso!', reg.scope);
+      })
+      .catch(err => {
+        console.error('TáNaMão: Falha ao registrar Service Worker:', err);
+      });
   });
 }
 

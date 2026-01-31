@@ -9,13 +9,22 @@ import AdminTab from './components/AdminTab';
 import InstallBanner from './components/InstallBanner';
 import SystemNotification from './components/SystemNotification';
 
+// Variável global para capturar o evento de instalação antes do React carregar totalmente
+let deferredPrompt: any = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Dispara um evento personalizado para que o React saiba que o prompt está disponível
+  window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
+});
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [pwaPrompt, setPwaPrompt] = useState<any>(deferredPrompt);
 
   // Estado para Notificação Global
   const [notification, setNotification] = useState<{ show: boolean; title: string; message: string }>({
@@ -25,6 +34,12 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
+    const handlePwaAvailable = () => {
+      setPwaPrompt(deferredPrompt);
+    };
+
+    window.addEventListener('pwa-prompt-available', handlePwaAvailable);
+
     const initApp = async () => {
       try {
         const [pros, favs, user] = await Promise.all([
@@ -42,12 +57,9 @@ const App: React.FC = () => {
       }
     };
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    });
-
     initApp();
+
+    return () => window.removeEventListener('pwa-prompt-available', handlePwaAvailable);
   }, []);
 
   const triggerNotification = (title: string, message: string) => {
@@ -86,11 +98,12 @@ const App: React.FC = () => {
   };
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    if (!pwaPrompt) return;
+    pwaPrompt.prompt();
+    const { outcome } = await pwaPrompt.userChoice;
     if (outcome === 'accepted') {
-      setDeferredPrompt(null);
+      deferredPrompt = null;
+      setPwaPrompt(null);
     }
   };
 
@@ -116,7 +129,7 @@ const App: React.FC = () => {
       />
       
       <InstallBanner 
-        deferredPrompt={deferredPrompt} 
+        deferredPrompt={pwaPrompt} 
         onInstall={handleInstallClick} 
       />
       

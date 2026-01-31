@@ -23,19 +23,33 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://ui-avatars.com/api/?name=T&background=FACC15&color=000000&size=32&bold=true">
 
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- PWA Meta Tags Atualizadas -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="TáNaMão">
     
-    <!-- Apple Touch Icon (Icone que aparece no iPhone) -->
+    <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=T&background=FACC15&color=000000&size=180&bold=true">
     
     <meta name="description" content="O guia definitivo de profissionais e serviços na sua região.">
+    
+    <!-- Tailwind Configuration para silenciar avisos e otimizar performance JIT -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          }
+        }
+      }
+    </script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <style>
+    <style type="text/css">
         body { 
           font-family: 'Inter', sans-serif; 
           -webkit-tap-highlight-color: transparent;
@@ -69,6 +83,6 @@
 </head>
 <body class="text-black overflow-x-hidden">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
