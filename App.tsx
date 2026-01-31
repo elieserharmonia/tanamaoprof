@@ -28,8 +28,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Deixamos o navegador gerenciar o banner nativo (removido preventDefault)
-      // mas ainda capturamos a referência para nosso banner customizado
+      // Deixamos o navegador gerenciar o banner nativo conforme políticas de engajamento
       deferredPrompt = e;
       setPwaPrompt(e);
     };

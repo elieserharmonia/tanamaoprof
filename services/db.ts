@@ -3,15 +3,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig, UserLocation } from '../types';
 import { INITIAL_PROS } from '../constants';
 
-// Mapeamento dinâmico para garantir compatibilidade com URL_SUPABASE ou SUPABASE_URL da Vercel
-const SUPABASE_URL = process.env.URL_SUPABASE || process.env.SUPABASE_URL || 'https://qcsxtkzgjrhzmvwvqpse.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_eNbpiaeRxpBUI8TKsLfekA_b8fcFpAK';
+// Priorização absoluta das variáveis de ambiente URL_SUPABASE e SUPABASE_KEY
+const SUPABASE_URL = process.env.URL_SUPABASE || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.warn("TáNaMão: Variáveis de ambiente Supabase não detectadas. Verifique a Vercel.");
+  console.error("TáNaMão: Erro Crítico - URL_SUPABASE ou SUPABASE_KEY não configuradas na Vercel.");
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
 
 const FAVS_KEY = 'tanamao_favs_v2';
 const USER_KEY = 'tanamao_user_v2';
