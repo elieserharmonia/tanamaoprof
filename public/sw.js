@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'tanamao-v2.1';
+const CACHE_NAME = 'tanamao-v2.3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -34,6 +34,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('supabase.co') || event.request.url.includes('googleSearch')) {
     return;
   }
+  
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);

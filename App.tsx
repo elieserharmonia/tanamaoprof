@@ -28,14 +28,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Interceptamos o prompt para exibir nosso banner customizado de alta qualidade
-      e.preventDefault();
+      // Deixamos o navegador gerenciar o banner nativo (removido preventDefault)
+      // mas ainda capturamos a referência para nosso banner customizado
       deferredPrompt = e;
       setPwaPrompt(e);
-      // Log informativo apenas em desenvolvimento
-      if (location.hostname === 'localhost') {
-        console.log('TáNaMão PWA: Prompt customizado pronto.');
-      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
