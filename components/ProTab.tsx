@@ -41,14 +41,6 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
   }, []);
 
-  useEffect(() => {
-    let interval: any;
-    if (resendTimer > 0) {
-      interval = setInterval(() => setResendTimer(prev => prev - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
   const [formData, setFormData] = useState<Partial<Professional>>({
     profileType: 'Profissional',
     plan: 'Gratuito',
@@ -92,8 +84,13 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
 
   const geocodeAddress = async (silent = false) => {
     const apiKey = process.env.API_KEY;
-    if (!formData.city || !formData.state || !apiKey) {
-      if (!silent && !apiKey) console.error("API Key do Google GenAI não encontrada.");
+    
+    // CORREÇÃO CRÍTICA: Se não há API Key, não tenta instanciar o GoogleGenAI
+    if (!apiKey || !formData.city || !formData.state) {
+      if (!silent && !apiKey) {
+        console.warn("Google API Key não configurada no ambiente. Pulando geolocalização por IA.");
+        alert("Aviso: Chave de IA não configurada. O perfil será salvo sem coordenadas exatas.");
+      }
       return;
     }
 
@@ -103,7 +100,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Retorne latitude e longitude JSON para o endereço: ${addressString}. Responda apenas o JSON.`,
+        contents: `Retorne latitude e longitude JSON para o endereço: ${addressString}. Responda apenas o objeto JSON.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -122,7 +119,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
         if (!silent) alert("Localização do seu negócio detectada com sucesso!");
       }
     } catch (err) { 
-      console.error("Falha ao detectar coordenadas:", err); 
+      console.error("Erro no geocoding:", err); 
     } finally { 
       setIsGeocoding(false); 
     }
@@ -146,7 +143,8 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
     e.preventDefault();
     if (!currentUser) return;
     
-    if (!formData.latitude || !formData.longitude) {
+    // Tenta geocoding se houver API Key, senão segue com o salvamento
+    if (process.env.API_KEY && (!formData.latitude || !formData.longitude)) {
       await geocodeAddress(true);
     }
 
@@ -157,48 +155,51 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
       companyName: formData.companyName?.toUpperCase(),
       category: getCategoryFromSpecialty(formData.subCategory || ''),
     } as Professional;
-    onSave(pro);
+    
+    try {
+      setLoading(true);
+      onSave(pro);
+    } catch (err) {
+      alert("Erro ao salvar perfil.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!currentUser || currentUser.id === 'temp') {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-500">
         <div className="bg-black p-4 rounded-2xl mb-6 shadow-2xl animate-bounce">
-          {authMode === 'recovery' || authMode === 'verify' || authMode === 'reset' ? <Mail className="w-10 h-10 text-yellow-400" /> : <Lock className="w-10 h-10 text-yellow-400" />}
+          <Lock className="w-10 h-10 text-yellow-400" />
         </div>
         
         <h2 className="text-2xl font-black uppercase mb-8 italic text-center leading-tight">
-          {authMode === 'login' && 'Acesso do Parceiro'}
-          {authMode === 'register' && 'Cadastrar Meu Negócio'}
-          {authMode === 'recovery' && 'Recuperar Acesso'}
-          {authMode === 'verify' && 'Confirmar E-mail'}
-          {authMode === 'reset' && 'Criar Nova Senha'}
+          {authMode === 'login' ? 'Acesso do Parceiro' : 'Cadastrar Meu Negócio'}
         </h2>
 
-        {(authMode === 'login' || authMode === 'register') && (
-          <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4" autoComplete="off">
-            {authMode === 'register' && (
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-black/40 px-1">Nome Completo</label>
-                <input type="text" placeholder="Nome do Responsável" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.name} onChange={e => setAuthData({...authData, name: e.target.value})} required />
-              </div>
-            )}
+        <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4" autoComplete="off">
+          {authMode === 'register' && (
             <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-black/40 px-1">E-mail</label>
-              <input type="email" placeholder="Ex: joao@email.com" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} required />
+              <label className="text-[9px] font-black uppercase text-black/40 px-1">Nome Completo</label>
+              <input type="text" placeholder="Nome do Responsável" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.name} onChange={e => setAuthData({...authData, name: e.target.value})} required />
             </div>
-            <div className="relative space-y-1">
-              <label className="text-[9px] font-black uppercase text-black/40 px-1">Senha</label>
-              <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} required />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-black/40">
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-            <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR NO PAINEL' : 'CRIAR MINHA CONTA'}
+          )}
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase text-black/40 px-1">E-mail</label>
+            <input type="email" placeholder="Ex: joao@email.com" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} required />
+          </div>
+          <div className="relative space-y-1">
+            <label className="text-[9px] font-black uppercase text-black/40 px-1">Senha</label>
+            <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-white border-2 border-black rounded-xl py-3 px-4 font-bold outline-none pr-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} required />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-black/40">
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
-          </form>
-        )}
+          </div>
+          <button type="submit" disabled={loading} className="w-full bg-black text-yellow-400 py-4 rounded-xl font-black uppercase text-xs shadow-lg active:translate-y-1 transition-all">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : authMode === 'login' ? 'ENTRAR NO PAINEL' : 'CRIAR MINHA CONTA'}
+          </button>
+        </form>
+        
         <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="mt-6 text-[10px] font-black uppercase opacity-40 hover:opacity-100 transition-opacity">
           {authMode === 'login' ? 'Ainda não é parceiro? Cadastre-se' : 'Já possui conta? Faça login'}
         </button>
@@ -263,32 +264,32 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
                <div className="flex items-center justify-between">
                   <h4 className="text-[10px] font-black uppercase text-black/40">Endereço</h4>
                   <button type="button" onClick={() => geocodeAddress()} disabled={isGeocoding} className="text-[9px] font-black uppercase bg-black text-yellow-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> IA Geocode</>}
+                    {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin"/> : <><MapPin className="w-3 h-3"/> Localizar por IA</>}
                   </button>
                </div>
                <div className="grid grid-cols-2 gap-3">
-                  <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
-                  <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+                  <input type="text" placeholder="Cidade" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                  <input type="text" placeholder="UF" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
                </div>
-               <input type="text" placeholder="Rua e Número" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+               <input type="text" placeholder="Rua e Número" className="bg-gray-50 border-2 border-black/10 rounded-xl p-3 font-bold text-xs outline-none w-full" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
             </div>
           </div>
 
-          <button type="submit" disabled={isGeocoding} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all">
-            {isGeocoding ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR ALTERAÇÕES'}
+          <button type="submit" disabled={isGeocoding || loading} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 transition-all">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR PERFIL'}
           </button>
         </form>
       ) : (
         <div className="space-y-6">
            <div className="bg-white border-4 border-black rounded-[40px] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center gap-4 relative overflow-hidden">
-              <div className="bg-yellow-400 p-4 rounded-3xl border-2 border-black"><Zap className="w-10 h-10 fill-black" /></div>
+              <div className="bg-yellow-400 p-4 rounded-3xl border-2 border-black shadow-lg"><Zap className="w-10 h-10 fill-black" /></div>
               <h3 className="text-2xl font-black uppercase italic">Plano VIP</h3>
               <p className="text-[11px] font-bold opacity-60 uppercase">Destaque seu perfil no topo!</p>
               <div className="flex items-baseline gap-1 mt-2">
                  <span className="text-4xl font-black">R$ 9,90</span>
                  <span className="text-xs font-bold opacity-40">/mês</span>
               </div>
-              <button className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs">Assinar Agora</button>
+              <button className="w-full bg-black text-yellow-400 py-4 rounded-2xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all">Assinar Agora</button>
            </div>
         </div>
       )}

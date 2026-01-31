@@ -2,7 +2,15 @@
 {
   "rewrites": [
     {
-      "source": "/((?!sw.js|manifest.json|favicon.ico|assets/).*)",
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/((?!sw.js|manifest.json|assets|favicon.ico).*)",
       "destination": "/index.html"
     }
   ]

@@ -9,14 +9,8 @@ import AdminTab from './components/AdminTab';
 import InstallBanner from './components/InstallBanner';
 import SystemNotification from './components/SystemNotification';
 
-// Variável global para capturar o evento de instalação antes do React carregar totalmente
+// Armazenar o evento globalmente para não perdê-lo durante re-renders do React
 let deferredPrompt: any = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Dispara um evento personalizado para que o React saiba que o prompt está disponível
-  window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
-});
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
@@ -24,7 +18,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [pwaPrompt, setPwaPrompt] = useState<any>(deferredPrompt);
+  const [pwaPrompt, setPwaPrompt] = useState<any>(null);
 
   // Estado para Notificação Global
   const [notification, setNotification] = useState<{ show: boolean; title: string; message: string }>({
@@ -34,11 +28,15 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    const handlePwaAvailable = () => {
-      setPwaPrompt(deferredPrompt);
+    // Escutar o evento de instalação nativo
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      setPwaPrompt(e);
+      console.log('TáNaMão: Evento beforeinstallprompt capturado!');
     };
 
-    window.addEventListener('pwa-prompt-available', handlePwaAvailable);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     const initApp = async () => {
       try {
@@ -59,7 +57,7 @@ const App: React.FC = () => {
 
     initApp();
 
-    return () => window.removeEventListener('pwa-prompt-available', handlePwaAvailable);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const triggerNotification = (title: string, message: string) => {
@@ -68,39 +66,25 @@ const App: React.FC = () => {
 
   const saveProfessionalData = async (pro: Professional) => {
     setLoading(true);
-    await db.saveProfessional(pro);
-    const updatedPros = await db.getProfessionals();
-    setProfessionals(updatedPros);
-    setLoading(false);
-    if (activeTab === Tab.PRO) {
-      setActiveTab(Tab.HOME);
+    try {
+      await db.saveProfessional(pro);
+      const updatedPros = await db.getProfessionals();
+      setProfessionals(updatedPros);
+      if (activeTab === Tab.PRO) {
+        setActiveTab(Tab.HOME);
+      }
+    } catch (err) {
+      console.error("Erro ao salvar:", err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const toggleFavorite = async (id: string) => {
-    const newFavs = await db.toggleFavorite(id);
-    setFavorites(newFavs);
-  };
-
-  const updateProfessional = async (updatedPro: Professional) => {
-    await db.saveProfessional(updatedPro);
-    setProfessionals(prev => prev.map(p => p.id === updatedPro.id ? updatedPro : p));
-  };
-
-  const handleLogin = async (user: User) => {
-    setCurrentUser(user);
-    await db.setCurrentUser(user);
-  };
-
-  const handleLogout = async () => {
-    setCurrentUser(null);
-    await db.setCurrentUser(null);
   };
 
   const handleInstallClick = async () => {
     if (!pwaPrompt) return;
     pwaPrompt.prompt();
     const { outcome } = await pwaPrompt.userChoice;
+    console.log(`TáNaMão: Usuário escolheu instalação: ${outcome}`);
     if (outcome === 'accepted') {
       deferredPrompt = null;
       setPwaPrompt(null);
@@ -114,7 +98,7 @@ const App: React.FC = () => {
           <h1 className="text-3xl font-black italic text-yellow-400">TáNaMão</h1>
         </div>
         <Loader2 className="w-8 h-8 animate-spin text-black mb-2" />
-        <p className="font-black uppercase italic text-xs tracking-widest animate-pulse">Buscando o melhor para você...</p>
+        <p className="font-black uppercase italic text-xs tracking-widest animate-pulse">Carregando oportunidades...</p>
       </div>
     );
   }
@@ -148,7 +132,7 @@ const App: React.FC = () => {
             {currentUser && (
               <div className="flex items-center gap-2 bg-black/10 px-2 py-1 rounded-md border border-black/5">
                 <span className="text-[10px] font-black uppercase text-black truncate max-w-[80px]">Olá, {currentUser.name.split(' ')[0]}</span>
-                <button onClick={handleLogout} className="text-black hover:text-red-700">
+                <button onClick={() => { setCurrentUser(null); db.setCurrentUser(null); }} className="text-black hover:text-red-700">
                   <LogOut className="w-3 h-3" />
                 </button>
               </div>
@@ -161,24 +145,31 @@ const App: React.FC = () => {
         {activeTab === Tab.HOME && (
           <HomeTab 
             professionals={professionals} 
-            toggleFavorite={toggleFavorite} 
+            toggleFavorite={(id) => db.toggleFavorite(id).then(setFavorites)} 
             favorites={favorites}
-            updateProfessional={updateProfessional}
+            updateProfessional={(p) => setProfessionals(prev => prev.map(pro => pro.id === p.id ? p : pro))}
             currentUser={currentUser}
-            onLogin={(name) => handleLogin({id: 'temp', name, email: ''})} 
+            onLogin={(name) => {
+              const newUser = {id: 'temp', name, email: ''};
+              setCurrentUser(newUser);
+              db.setCurrentUser(newUser);
+            }} 
           />
         )}
         {activeTab === Tab.PRO && (
           <ProTab 
             onSave={saveProfessionalData} 
             currentUser={currentUser} 
-            onLogin={handleLogin}
+            onLogin={(user) => {
+              setCurrentUser(user);
+              db.setCurrentUser(user);
+            }}
           />
         )}
         {activeTab === Tab.ADMIN && (
           <AdminTab 
             professionals={professionals} 
-            updateProfessional={updateProfessional} 
+            updateProfessional={(p) => setProfessionals(prev => prev.map(pro => pro.id === p.id ? p : pro))} 
           />
         )}
       </main>
