@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig, UserLocation } from '../types';
 import { INITIAL_PROS } from '../constants';

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Home, PlusCircle, ShieldCheck, LogOut, Loader2, Heart, User as UserIcon } from 'lucide-react';
 import { Tab, Professional, User } from './types';
@@ -29,6 +28,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       // Deixamos o navegador gerenciar o banner nativo conforme políticas de engajamento
+      // Removido explicitamente qualquer e.preventDefault()
       deferredPrompt = e;
       setPwaPrompt(e);
     };
