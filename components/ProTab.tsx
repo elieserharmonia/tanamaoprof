@@ -281,7 +281,7 @@ const ProTab: React.FC<ProTabProps> = ({ onSave, currentUser, onLogin }) => {
           </div>
 
           <button type="submit" disabled={isGeocoding || loading} className="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
-            {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR NO SUPABASE'}
+            {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'SALVAR PERFIL'}
           </button>
         </form>
       ) : (

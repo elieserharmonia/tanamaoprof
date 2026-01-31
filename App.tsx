@@ -9,7 +9,7 @@ import AdminTab from './components/AdminTab';
 import InstallBanner from './components/InstallBanner';
 import SystemNotification from './components/SystemNotification';
 
-// Armazenar o evento globalmente para não perdê-lo durante re-renders do React
+// Instância global para o evento de instalação
 let deferredPrompt: any = null;
 
 const App: React.FC = () => {
@@ -20,7 +20,6 @@ const App: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [pwaPrompt, setPwaPrompt] = useState<any>(null);
 
-  // Estado para Notificação Global
   const [notification, setNotification] = useState<{ show: boolean; title: string; message: string }>({
     show: false,
     title: '',
@@ -28,12 +27,14 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    // Escutar o evento de instalação nativo
+    // Interceptando a instalação nativa para usar nosso banner personalizado
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Importante: chamamos preventDefault() para que o navegador NÃO mostre a barra padrão feia.
+      // O Chrome logará que o banner foi suprimido, o que é esperado ao criar um PWA customizado.
       e.preventDefault();
       deferredPrompt = e;
       setPwaPrompt(e);
-      console.log('TáNaMão: Evento beforeinstallprompt capturado!');
+      console.log('TáNaMão: Evento de instalação interceptado com sucesso.');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -60,10 +61,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const triggerNotification = (title: string, message: string) => {
-    setNotification({ show: true, title, message });
-  };
-
   const saveProfessionalData = async (pro: Professional) => {
     setLoading(true);
     try {
@@ -81,11 +78,14 @@ const App: React.FC = () => {
   };
 
   const handleInstallClick = async () => {
-    if (!pwaPrompt) return;
-    pwaPrompt.prompt();
-    const { outcome } = await pwaPrompt.userChoice;
-    console.log(`TáNaMão: Usuário escolheu instalação: ${outcome}`);
+    if (!deferredPrompt) return;
+    
+    // Mostrando o prompt real apenas quando o usuário clica no nosso botão
+    deferredPrompt.prompt();
+    
+    const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
+      console.log('TáNaMão: Usuário aceitou a instalação.');
       deferredPrompt = null;
       setPwaPrompt(null);
     }
