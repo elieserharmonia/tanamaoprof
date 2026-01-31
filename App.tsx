@@ -9,7 +9,7 @@ import AdminTab from './components/AdminTab';
 import InstallBanner from './components/InstallBanner';
 import SystemNotification from './components/SystemNotification';
 
-// Instância global para o evento de instalação
+// Instância global persistente para o prompt de instalação
 let deferredPrompt: any = null;
 
 const App: React.FC = () => {
@@ -27,14 +27,15 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    // Interceptando a instalação nativa para usar nosso banner personalizado
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Importante: chamamos preventDefault() para que o navegador NÃO mostre a barra padrão feia.
-      // O Chrome logará que o banner foi suprimido, o que é esperado ao criar um PWA customizado.
+      // Interceptamos o prompt para exibir nosso banner customizado de alta qualidade
       e.preventDefault();
       deferredPrompt = e;
       setPwaPrompt(e);
-      console.log('TáNaMão: Evento de instalação interceptado com sucesso.');
+      // Log informativo apenas em desenvolvimento
+      if (location.hostname === 'localhost') {
+        console.log('TáNaMão PWA: Prompt customizado pronto.');
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -50,7 +51,7 @@ const App: React.FC = () => {
         setFavorites(favs);
         setCurrentUser(user);
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("Erro ao carregar dados do Supabase:", error);
       } finally {
         setLoading(false);
       }
@@ -71,7 +72,7 @@ const App: React.FC = () => {
         setActiveTab(Tab.HOME);
       }
     } catch (err) {
-      console.error("Erro ao salvar:", err);
+      console.error("Erro ao persistir dados:", err);
     } finally {
       setLoading(false);
     }
@@ -80,12 +81,10 @@ const App: React.FC = () => {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     
-    // Mostrando o prompt real apenas quando o usuário clica no nosso botão
     deferredPrompt.prompt();
     
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      console.log('TáNaMão: Usuário aceitou a instalação.');
       deferredPrompt = null;
       setPwaPrompt(null);
     }

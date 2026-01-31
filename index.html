@@ -7,7 +7,7 @@
     <title>TáNaMão - Profissionais e Serviços</title>
     <meta name="theme-color" content="#FACC15">
     
-    <!-- PWA Meta Tags - Padrão Moderno -->
+    <!-- PWA Meta Tags Modernas -->
     <link rel="manifest" href="/manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,21 +16,16 @@
     
     <meta name="description" content="O guia definitivo de profissionais e serviços na sua região. Tudo na palma da sua mão!">
     
-    <!-- Tailwind CSS JIT - Configuração otimizada -->
+    <!-- Tailwind JIT - Configuração de Produção -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Configuração para silenciar avisos e estender tema
-      tailwind.config = {
+      window.tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
           }
-        },
-        // Ativando modo de produção no compilador JIT do navegador
-        corePlugins: {
-          preflight: true,
         }
       }
     </script>

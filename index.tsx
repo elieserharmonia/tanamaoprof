@@ -3,10 +3,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker apontando para a raiz pública
+// Registro do Service Worker apontando para a raiz absoluta
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Busca o arquivo na raiz /sw.js que foi movido para /public
+    // Registro absoluto para garantir que o SW seja encontrado na raiz do domínio
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
         console.log('TáNaMão PWA: Service Worker ativo!', reg.scope);

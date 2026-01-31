@@ -1,5 +1,7 @@
 
 {
+  "cleanUrls": true,
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/sw.js",
@@ -10,7 +12,7 @@
       "destination": "/manifest.json"
     },
     {
-      "source": "/((?!sw.js|manifest.json|assets|favicon.ico).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
