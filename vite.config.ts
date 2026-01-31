@@ -10,9 +10,9 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',
-    // Reabilitando o hashing padrão do Vite para evitar conflitos de cache e garantir que novos builds sejam carregados
     rollupOptions: {
       output: {
+        // Mantemos hashes para cache-busting, mas o SW agora lidará corretamente com o HTML
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`
