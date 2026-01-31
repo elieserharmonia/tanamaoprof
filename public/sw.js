@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'tanamao-v2.3';
+const CACHE_NAME = 'tanamao-v3.0'; // Versão incrementada para forçar refresh total
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,6 +21,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Limpando cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -31,13 +32,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('supabase.co') || event.request.url.includes('googleSearch')) {
+  // Ignorar requisições para APIs externas (Supabase, Google Search)
+  if (
+    event.request.url.includes('supabase.co') || 
+    event.request.url.includes('googleSearch') ||
+    event.request.method !== 'GET'
+  ) {
     return;
   }
   
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+      // Retorna cache ou busca na rede
+      return response || fetch(event.request).catch(() => {
+        // Fallback básico se offline
+        return caches.match('/');
+      });
     })
   );
 });

@@ -1,13 +1,14 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Professional, Review, User, PaymentRecord, Subscription, PlanType, MpConfig, UserLocation } from '../types';
 import { INITIAL_PROS } from '../constants';
 
-// Priorização absoluta das variáveis de ambiente URL_SUPABASE e SUPABASE_KEY
+// Priorização absoluta das variáveis de ambiente
 const SUPABASE_URL = process.env.URL_SUPABASE || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("TáNaMão: Erro Crítico - URL_SUPABASE ou SUPABASE_KEY não configuradas na Vercel.");
+  console.error("TáNaMão: ERRO CRÍTICO - Configurações do Supabase ausentes na Vercel.");
 }
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
@@ -48,8 +49,12 @@ export const db = {
 
   // --- ADMIN CONFIG ---
   async getMasterPassword(): Promise<string> {
-    const { data } = await supabase.from('app_config').select('data').eq('key', 'master_password').single();
-    return data?.data?.password || 'admin';
+    try {
+      const { data } = await supabase.from('app_config').select('data').eq('key', 'master_password').single();
+      return data?.data?.password || 'admin';
+    } catch {
+      return 'admin';
+    }
   },
 
   async updateMasterPassword(newPassword: string): Promise<void> {
@@ -58,8 +63,12 @@ export const db = {
 
   // --- CONFIG METHODS ---
   async getMpConfig(): Promise<MpConfig> {
-    const { data } = await supabase.from('app_config').select('data').eq('key', 'mp_config').single();
-    return data?.data || { mode: 'test', accessToken: '', webhookUrl: '' };
+    try {
+      const { data } = await supabase.from('app_config').select('data').eq('key', 'mp_config').single();
+      return data?.data || { mode: 'test', accessToken: '', webhookUrl: '' };
+    } catch {
+      return { mode: 'test', accessToken: '', webhookUrl: '' };
+    }
   },
 
   async saveMpConfig(config: MpConfig): Promise<void> {
@@ -81,6 +90,7 @@ export const db = {
         return p;
       });
     } catch (e) {
+      console.warn("Falha ao buscar profissionais, usando dados iniciais:", e);
       return INITIAL_PROS;
     }
   },
